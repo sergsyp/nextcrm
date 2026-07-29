@@ -1,6 +1,7 @@
 "use server";
 import { getApiKey } from "@/lib/api-keys";
 import { requireAuthenticated, AuthenticationError } from "@/lib/authz";
+import { AI_BASE_URL, AI_CHAT_MODEL } from "@/lib/ai-config";
 
 export const generateTemplate = async (
   prompt: string
@@ -27,7 +28,7 @@ export const generateTemplate = async (
   const timeout = setTimeout(() => controller.abort(), 30_000);
 
   try {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch(`${AI_BASE_URL}/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -35,7 +36,7 @@ export const generateTemplate = async (
       },
       signal: controller.signal,
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: AI_CHAT_MODEL,
         messages: [
           {
             role: "system",

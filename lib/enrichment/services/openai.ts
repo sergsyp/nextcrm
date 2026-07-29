@@ -1,13 +1,13 @@
 import OpenAI from 'openai';
 import { z } from 'zod';
-import { zodResponseFormat } from 'openai/helpers/zod';
 import type { EnrichmentField, EnrichmentResult } from '../types';
+import { AI_CHAT_MODEL, createOpenAIClient } from '@/lib/ai-config';
 
 export class OpenAIService {
   private client: OpenAI;
 
   constructor(apiKey: string) {
-    this.client = new OpenAI({ apiKey });
+    this.client = createOpenAIClient(apiKey);
   }
 
   createEnrichmentSchema(fields: EnrichmentField[]) {
@@ -139,7 +139,7 @@ export class OpenAIService {
       }
 
       const response = await this.client.chat.completions.create({
-        model: 'gpt-5',
+        model: AI_CHAT_MODEL,
         messages: [
           {
             role: 'system',
@@ -249,7 +249,6 @@ DOMAIN PARKING/SALE PAGES:
             content: trimmedContent,
           },
         ],
-        response_format: zodResponseFormat(schema, 'enrichment_data'),
       });
 
       const messageContent = response.choices[0].message.content;
@@ -375,7 +374,7 @@ DOMAIN PARKING/SALE PAGES:
       }
       
       const response = await this.client.chat.completions.create({
-        model: 'gpt-5',
+        model: AI_CHAT_MODEL,
         messages: [
           {
             role: 'system',
@@ -491,7 +490,6 @@ REMEMBER: Extract exact_text from the "=== ACTUAL CONTENT BELOW ===" section, NO
             content: trimmedContent,
           },
         ],
-        response_format: zodResponseFormat(schema, 'corroborated_data'),
         temperature: 0.1, // Lower temperature for more consistent extraction
       });
 
@@ -766,7 +764,7 @@ REMEMBER: Extract exact_text from the "=== ACTUAL CONTENT BELOW ===" section, NO
         .join('\n');
       
       const response = await this.client.chat.completions.create({
-        model: 'gpt-5-mini',
+        model: AI_CHAT_MODEL,
         messages: [
           {
             role: 'system',
@@ -788,7 +786,6 @@ ${schemaDescription}
             content: prompt
           }
         ],
-        response_format: { type: 'json_object' },
         temperature: 0.3,
         max_tokens: 2000,
       });
@@ -836,7 +833,7 @@ ${schemaDescription}
   ): Promise<string[]> {
     try {
       const response = await this.client.chat.completions.create({
-        model: 'gpt-5',
+        model: AI_CHAT_MODEL,
         messages: [
           {
             role: 'system',
@@ -858,7 +855,6 @@ Previous queries tried: ${existingQueries.join(', ')}
 Generate new search queries to find: ${targetField}`,
           },
         ],
-        response_format: { type: 'json_object' },
       });
 
       const result = JSON.parse(response.choices[0].message.content || '{}');
@@ -903,7 +899,7 @@ Return ONLY the search query, nothing else.`
       });
 
       const response = await this.client.chat.completions.create({
-        model: 'gpt-5-mini',
+        model: AI_CHAT_MODEL,
         messages,
         temperature: 0.3,
         max_tokens: 100,
@@ -975,7 +971,7 @@ Question: ${question}
       });
 
       const response = await this.client.chat.completions.create({
-        model: 'gpt-5-mini',
+        model: AI_CHAT_MODEL,
         messages,
         temperature: 0.1, // Lower temperature for more consistent behavior
         max_tokens: 500,
@@ -1009,7 +1005,7 @@ Question: ${question}
   ): Promise<{ url: string; title?: string }> {
     try {
       const response = await this.client.chat.completions.create({
-        model: 'gpt-5-mini',
+        model: AI_CHAT_MODEL,
         messages: [
           {
             role: 'system',
@@ -1068,7 +1064,7 @@ Be concise but informative. If the content doesn't contain the answer, say so. W
       });
 
       const response = await this.client.chat.completions.create({
-        model: 'gpt-5',
+        model: AI_CHAT_MODEL,
         messages,
         temperature: 0.7,
         max_tokens: 500,

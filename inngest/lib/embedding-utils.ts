@@ -1,7 +1,10 @@
 import { createHash } from "crypto";
-import OpenAI from "openai";
+import {
+  AI_EMBEDDING_MODEL,
+  createOpenAIClient,
+} from "@/lib/ai-config";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = createOpenAIClient(process.env.OPENAI_API_KEY ?? "");
 
 /**
  * Concatenate non-null text fields into a single embedding string.
@@ -26,7 +29,7 @@ export function computeContentHash(text: string): string {
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
   const response = await openai.embeddings.create({
-    model: "text-embedding-3-small",
+    model: AI_EMBEDDING_MODEL,
     input: text,
   });
   return response.data[0].embedding;

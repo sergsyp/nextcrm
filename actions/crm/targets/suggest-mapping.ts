@@ -1,6 +1,7 @@
 "use server";
 import { getSession } from "@/lib/auth-server";
 import { openAiHelper } from "@/lib/openai";
+import { AI_CHAT_MODEL } from "@/lib/ai-config";
 
 const TARGET_FIELDS = [
   "last_name",
@@ -104,7 +105,7 @@ export const suggestMapping = async (headers: string[]) => {
   if (openai) {
     try {
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: AI_CHAT_MODEL,
         messages: [
           {
             role: "system",
@@ -116,7 +117,6 @@ export const suggestMapping = async (headers: string[]) => {
             content: `CSV headers: ${JSON.stringify(headers)}\n\nCRM fields: ${JSON.stringify(TARGET_FIELDS)}\n\nReturn a JSON object like: { "CSV Header": "crm_field" or null }`,
           },
         ],
-        response_format: { type: "json_object" },
         temperature: 0,
       });
 

@@ -1,5 +1,5 @@
-import OpenAI from "openai";
 import { getApiKey } from "./api-keys";
+import { createOpenAIClient } from "./ai-config";
 
 //Check if the openai key is in the database
 //If not, use the env variable
@@ -13,9 +13,7 @@ export async function openAiHelper(userId: string) {
   }
 
   //console.log(apiKey, "apiKey");
-  const openai = new OpenAI({
-    apiKey: apiKey,
-  });
+  const openai = createOpenAIClient(apiKey);
 
   return openai;
 }
