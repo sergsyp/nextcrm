@@ -4,10 +4,11 @@
 FROM node:22-alpine AS deps
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
+ENV NODE_OPTIONS="--max-old-space-size=3072"
 
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 RUN pnpm install --frozen-lockfile
 
@@ -17,6 +18,7 @@ RUN pnpm install --frozen-lockfile
 FROM node:22-alpine AS build
 
 RUN corepack enable && corepack prepare pnpm@latest --activate
+ENV NODE_OPTIONS="--max-old-space-size=6144"
 
 WORKDIR /app
 
@@ -84,6 +86,9 @@ RUN addgroup --system --gid 1001 nodejs && \
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/public ./public
+# Next standalone tracing omits the libvips shared object used by Sharp.
+COPY --from=build /app/node_modules/.pnpm/@img+sharp-libvips-linuxmusl-x64@*/node_modules/@img/sharp-libvips-linuxmusl-x64/lib/libvips-cpp.so.* /usr/local/lib/
+ENV LD_LIBRARY_PATH="/usr/local/lib"
 
 # Copy Prisma schema + migrations for runtime migrate deploy
 COPY --from=build /app/prisma ./prisma
