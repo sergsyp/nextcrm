@@ -183,6 +183,10 @@ export async function runAgentTask(key: AiAgentKey, taskId?: string) {
         if (!tool) throw new Error(`Tool is not allowed: ${call.function.name}`);
         const rawArgs = JSON.parse(call.function.arguments || "{}");
         const args = tool.schema.parse(rawArgs);
+        await markRun(task.id, agentUser.id, "running", {
+          aiLastTool: tool.name,
+          aiRunTurns: turns,
+        });
         const result = await tool.handler(args as never, agentUser.id, authzUser);
         messages.push({
           role: "tool",
