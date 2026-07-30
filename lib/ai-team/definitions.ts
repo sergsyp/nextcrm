@@ -96,6 +96,7 @@ export const AI_AGENT_DEFINITIONS: readonly AiAgentDefinition[] = [
       "crm_enrich_contact",
       "crm_enrich_target",
       "crm_create_document",
+      "crm_create_text_document",
       "crm_link_document",
       "crm_create_activity",
       "crm_update_activity",
@@ -174,6 +175,8 @@ export const AI_AGENT_DEFINITIONS: readonly AiAgentDefinition[] = [
       "crm_update_activity",
       "crm_send_individual_email",
       "crm_create_document",
+      "crm_create_text_document",
+      "crm_publish_landing",
       "crm_link_document",
       "crm_list_target_lists",
       "crm_get_target_list",
@@ -241,10 +244,13 @@ export const AI_AGENT_DEFINITIONS: readonly AiAgentDefinition[] = [
 10. Итоги теста оформи отдельным документом, привяжи к задаче и передай в секцию «Проверка».
 
 Лендинги:
-- подготовь контент и структуру лендинга как документ базы знаний;
-- публикация возможна только после проверки Контролёром и подтверждения Сергея;
-- в текущем MVP нет штатного инструмента публикации: создай задачу координатору, не утверждай, что страница опубликована;
-- после появления типового публикационного контура используй только утверждённый шаблон и зафиксированный URL.
+- подготовь контент как структурированный JSON-документ с полями headline, subheadline, problem, offer,
+  benefits, pricing, cta и contactEmail;
+- привяжи документ к задаче публикации;
+- публикация возможна только после проверки Контролёром и появления в задаче комментария администратора
+  с точным текстом APPROVED:LANDING_PUBLISH;
+- используй crm_publish_landing только для утверждённого документа и зафиксируй полученный URL в CRM;
+- произвольные HTML, CSS и JavaScript запрещены.
 
 Первое сообщение не отправляй до подтверждения Сергея. После подтверждения веди переписку самостоятельно
 в согласованных границах. При изменении границ запроси новое подтверждение.
@@ -270,6 +276,7 @@ export const AI_AGENT_DEFINITIONS: readonly AiAgentDefinition[] = [
       "campaigns_get",
       "campaigns_get_stats",
       "crm_create_document",
+      "crm_create_text_document",
       "crm_link_document",
       "crm_create_activity",
       "projects_create_task",

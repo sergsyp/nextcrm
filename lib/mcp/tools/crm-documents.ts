@@ -13,6 +13,11 @@ import {
   validationError,
   softDeleteData,
 } from "../helpers";
+import { landingContentSchema, landingSlugSchema } from "@/lib/landing/schema";
+import {
+  hasAdminApproval,
+  LANDING_PUBLISH_APPROVAL,
+} from "@/lib/email/agent-approval";
 
 // Map entity types to their Prisma junction table accessor names (camelCase, lowercase first)
 const ENTITY_LINK_MAP: Record<string, string> = {
@@ -32,6 +37,117 @@ const ENTITY_FK_MAP: Record<string, string> = {
 };
 
 export const crmDocumentTools = [
+  {
+    name: "crm_create_text_document",
+    description: "Create a text or structured JSON document directly in the CRM knowledge base",
+    schema: z.object({
+      document_name: z.string().min(1).max(240),
+      content_text: z.string().min(1).max(200_000),
+      description: z.string().max(2000).optional(),
+      tags: z.record(z.string(), z.unknown()).optional(),
+    }),
+    async handler(
+      args: {
+        document_name: string;
+        content_text: string;
+        description?: string;
+        tags?: Record<string, unknown>;
+      },
+      userId: string
+    ) {
+      const doc = await prismadb.documents.create({
+        data: {
+          document_name: args.document_name,
+          document_file_mimeType: "text/plain",
+          document_file_url: "",
+          description: args.description,
+          visibility: "shared",
+          created_by_user: userId,
+          createdBy: userId,
+          assigned_user: userId,
+          content_text: args.content_text,
+          tags: args.tags as any,
+          processing_status: "READY",
+        },
+      });
+      return itemResponse(doc);
+    },
+  },
+  {
+    name: "crm_publish_landing",
+    description:
+      "Publish a structured CRM text document as a public landing page after an administrator approves the linked task",
+    schema: z.object({
+      documentId: z.string().uuid(),
+      approvalTaskId: z.string().uuid(),
+      slug: landingSlugSchema,
+    }),
+    async handler(
+      args: { documentId: string; approvalTaskId: string; slug: string },
+      userId: string
+    ) {
+      const doc = await prismadb.documents.findFirst({
+        where: {
+          id: args.documentId,
+          created_by_user: userId,
+          deletedAt: null,
+          tasks: { some: { task_id: args.approvalTaskId } },
+        },
+      });
+      if (!doc?.content_text) notFound("Document");
+      landingContentSchema.parse(JSON.parse(doc.content_text));
+
+      const approval = await prismadb.tasks.findFirst({
+        where: { id: args.approvalTaskId, user: userId },
+        select: {
+          comments: {
+            include: { assigned_user: { select: { role: true } } },
+          },
+        },
+      });
+      if (
+        !approval ||
+        !hasAdminApproval(approval.comments, LANDING_PUBLISH_APPROVAL)
+      ) {
+        throw new Error("APPROVAL_REQUIRED");
+      }
+
+      const conflict = await prismadb.documents.findFirst({
+        where: {
+          id: { not: doc.id },
+          deletedAt: null,
+          tags: { path: ["landing", "slug"], equals: args.slug },
+        },
+        select: { id: true },
+      });
+      if (conflict) throw new Error("CONFLICT: landing slug already exists");
+
+      const oldTags =
+        doc.tags && typeof doc.tags === "object" && !Array.isArray(doc.tags)
+          ? (doc.tags as Record<string, unknown>)
+          : {};
+      const updated = await prismadb.documents.update({
+        where: { id: doc.id },
+        data: {
+          tags: {
+            ...oldTags,
+            landing: {
+              slug: args.slug,
+              status: "published",
+              publishedAt: new Date().toISOString(),
+              approvedTaskId: args.approvalTaskId,
+            },
+          },
+          status: "PUBLISHED",
+        },
+      });
+      return itemResponse({
+        id: updated.id,
+        slug: args.slug,
+        url: `/l/${args.slug}`,
+      });
+    },
+  },
   {
     name: "crm_list_documents",
     description: "List documents, optionally filtered by linked entity type and ID",
