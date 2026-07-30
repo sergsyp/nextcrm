@@ -2,6 +2,7 @@ import {
   eligibleSectionsForAgent,
   isRunnableAiTask,
   selectAllowedTools,
+  selectToolsForTask,
   toSerializable,
 } from "../executor-utils";
 
@@ -57,5 +58,22 @@ describe("AI team executor", () => {
         now
       )
     ).toBe(true);
+  });
+
+  test("sends only task-relevant tool schemas to the model", () => {
+    const tools = [
+      { name: "projects_get_task" },
+      { name: "crm_create_text_document" },
+      { name: "crm_send_individual_email" },
+      { name: "campaigns_create" },
+    ];
+    expect(
+      selectToolsForTask(tools, "Создай внутренний отчёт и документ").map(
+        (tool) => tool.name
+      )
+    ).toEqual(["projects_get_task", "crm_create_text_document"]);
+    expect(
+      selectToolsForTask(tools, "Подготовь письмо клиенту").map((tool) => tool.name)
+    ).toContain("crm_send_individual_email");
   });
 });

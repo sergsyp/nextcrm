@@ -10,6 +10,7 @@ import {
   eligibleSectionsForAgent,
   isRunnableAiTask,
   selectAllowedTools,
+  selectToolsForTask,
   toSerializable,
 } from "./executor-utils";
 
@@ -125,7 +126,11 @@ export async function runAgentTask(key: AiAgentKey, taskId?: string) {
   }
 
   await markRun(task.id, agentUser.id, "running");
-  const tools = selectAllowedTools(allTools, definition.toolNames);
+  const allowedTools = selectAllowedTools(allTools, definition.toolNames);
+  const tools = selectToolsForTask(
+    allowedTools,
+    `${task.title}\n${task.content ?? ""}\n${task.assigned_section?.board_relation?.description ?? ""}`
+  );
   const authzUser = { id: agentUser.id, role: mapLegacyRole(agentUser.role) };
   const client = createOpenAIClient(process.env.OPENAI_API_KEY ?? "");
   const messages: OpenAI.ChatCompletionMessageParam[] = [
@@ -161,6 +166,9 @@ export async function runAgentTask(key: AiAgentKey, taskId?: string) {
         tools: openAiTools,
         tool_choice: "auto",
         temperature: 0.2,
+        max_completion_tokens: 2000,
+      }, {
+        timeout: Number(process.env.AI_TEAM_LLM_TIMEOUT_MS ?? 120_000),
       });
       const message = response.choices[0]?.message;
       if (!message) throw new Error("AI provider returned no message");
