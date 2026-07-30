@@ -96,14 +96,33 @@ describe("projects_create_task", () => {
 });
 
 describe("projects_move_task", () => {
-  it("requires write on BOTH the source task and the destination board", async () => {
+  it("requires destination-board write for a cross-board move", async () => {
     writeTask.mockResolvedValue(undefined); // source ok
+    (prismadb.tasks.findUnique as jest.Mock).mockResolvedValue({
+      assigned_section: { board: "b-source" },
+    });
     (prismadb.sections.findUnique as jest.Mock).mockResolvedValue({ id: "s-dest", board: "b-dest" });
     writeBoard.mockRejectedValue(new AuthorizationError()); // dest denied
     await expect(call("projects_move_task", { id: "t-1", section: "s-dest" })).rejects.toThrow("NOT_FOUND");
     expect(writeTask).toHaveBeenCalledWith(USER, "t-1");
     expect(writeBoard).toHaveBeenCalledWith(USER, "b-dest");
     expect(prismadb.tasks.update).not.toHaveBeenCalled();
+  });
+  it("allows an authorized task move within the same shared board", async () => {
+    writeTask.mockResolvedValue(undefined);
+    (prismadb.tasks.findUnique as jest.Mock).mockResolvedValue({
+      assigned_section: { board: "b-shared" },
+    });
+    (prismadb.sections.findUnique as jest.Mock).mockResolvedValue({
+      id: "s-dest",
+      board: "b-shared",
+    });
+    (prismadb.tasks.update as jest.Mock).mockResolvedValue({ id: "t-1" });
+
+    await call("projects_move_task", { id: "t-1", section: "s-dest" });
+
+    expect(writeBoard).not.toHaveBeenCalled();
+    expect(prismadb.tasks.update).toHaveBeenCalled();
   });
   it("denies at the source task before touching the destination", async () => {
     writeTask.mockRejectedValue(new AuthorizationError());

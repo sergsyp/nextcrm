@@ -320,9 +320,23 @@ export const projectTools = [
     }),
     async handler(args: { id: string; section: string; position?: number }, _userId: string, user: AuthzUser) {
       await assertScopeOrNotFound(() => assertCanWriteTask(user, args.id), "Task");
-      const sec = await prismadb.sections.findUnique({ where: { id: args.section } });
+      const [existingTask, sec] = await Promise.all([
+        prismadb.tasks.findUnique({
+          where: { id: args.id },
+          select: {
+            assigned_section: { select: { board: true } },
+          },
+        }),
+        prismadb.sections.findUnique({ where: { id: args.section } }),
+      ]);
+      if (!existingTask) notFound("Task");
       if (!sec) notFound("Section");
-      await assertScopeOrNotFound(() => assertCanWriteBoard(user, sec.board), "Board");
+      // Moving an assigned task between columns on the same shared board is a
+      // task-level operation. Cross-board moves still require write access to
+      // the destination board.
+      if (existingTask.assigned_section?.board !== sec.board) {
+        await assertScopeOrNotFound(() => assertCanWriteBoard(user, sec.board), "Board");
+      }
       const task = await prismadb.tasks.update({
         where: { id: args.id },
         data: {
