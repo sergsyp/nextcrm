@@ -17,6 +17,27 @@ const DocumentViewModal = ({
   loading,
   document,
 }: AlertModalProps) => {
+  const isInternalDocument =
+    typeof document.document_file_url === "string" &&
+    document.document_file_url.startsWith("internal://");
+
+  const downloadInternalDocument = () => {
+    const blob = new Blob([document.content_text || ""], {
+      type: document.document_file_mimeType || "text/markdown",
+    });
+    const url = URL.createObjectURL(blob);
+    const anchor = window.document.createElement("a");
+    const safeName = String(document.document_name || "document")
+      .replace(/[<>:"/\\|?*]+/g, "-")
+      .trim();
+
+    anchor.href = url;
+    anchor.download = `${safeName || "document"}.md`;
+    window.document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  };
 
   const imageTypes = [
     "application/png",
@@ -34,7 +55,28 @@ const DocumentViewModal = ({
     "image/webp",
   ];
 
-  console.log(document.document_file_mimeType, "mimeType");
+  if (isInternalDocument) {
+    return (
+      <ModalDocumentView isOpen={isOpen} onClose={onClose}>
+        <div className="flex h-full min-h-0 flex-col">
+          <div className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap rounded-md border bg-muted/20 p-5 text-sm leading-6">
+            {document.content_text || "Document content is empty."}
+          </div>
+          <div className="flex w-full items-center justify-end gap-2 pt-6">
+            <Button
+              disabled={loading || !document.content_text}
+              onClick={downloadInternalDocument}
+            >
+              Download
+            </Button>
+            <Button disabled={loading} variant={"outline"} onClick={onClose}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      </ModalDocumentView>
+    );
+  }
 
   if (imageTypes.includes(document.document_file_mimeType)) {
     const imageUrl = document.document_file_url || "";
