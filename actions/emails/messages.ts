@@ -3,9 +3,8 @@ import { getSession } from "@/lib/auth-server";
 
 import { prismadb } from "@/lib/prisma";
 import { decrypt } from "@/lib/email-crypto";
-import { assertPublicHost, HostNotAllowedError } from "@/lib/net/host-guard";
-import nodemailer from "nodemailer";
 import { EmailFolder } from "@prisma/client";
+import { sendEmailForUser, type SendEmailInput } from "@/lib/email/send-message";
 
 const PAGE_SIZE = 50;
 const MAX_COUNT = 10_000;
@@ -144,72 +143,7 @@ export async function deleteEmail(id: string) {
   await prismadb.email.update({ where: { id }, data: { isDeleted: true } });
 }
 
-type SendInput = {
-  accountId: string;
-  to: string[];
-  cc?: string[];
-  bcc?: string[];
-  subject: string;
-  body: string;
-  inReplyTo?: string;   // parent's Message-ID
-  references?: string;  // parent's References + parent's Message-ID (space-separated)
-};
-
-export async function sendEmail(input: SendInput) {
+export async function sendEmail(input: SendEmailInput) {
   const userId = await requireSession();
-
-  const account = await prismadb.emailAccount.findFirst({
-    where: { id: input.accountId, userId },
-  });
-  if (!account) throw new Error("Account not found");
-
-  let pinned: { address: string; hostname: string };
-  try {
-    pinned = await assertPublicHost(account.smtpHost);
-  } catch (e) {
-    if (e instanceof HostNotAllowedError) throw new Error("Mail host is not allowed");
-    throw e;
-  }
-
-  const password = decrypt(account.passwordEncrypted);
-
-  const transporter = nodemailer.createTransport({
-    host: pinned.address,
-    port: account.smtpPort,
-    secure: account.smtpSsl,
-    auth: { user: account.username, pass: password },
-    // servername for TLS SNI (host is a pinned IP). Added via a typed spread so
-    // the object literal keeps only the well-known SMTP props and TS resolves the
-    // SMTP overload correctly.
-    ...({ servername: account.smtpHost } as { servername: string }),
-  });
-
-  const info = await transporter.sendMail({
-    from: account.username,
-    to: input.to.join(", "),
-    cc: input.cc?.join(", "),
-    bcc: input.bcc?.join(", "),
-    subject: input.subject,
-    text: input.body,
-    inReplyTo: input.inReplyTo,
-    references: input.references,
-  });
-
-  // Write sent message to DB immediately so it appears in Sent view
-  await prismadb.email.create({
-    data: {
-      emailAccountId: input.accountId,
-      userId,
-      rfcMessageId: info.messageId ?? `local-${crypto.randomUUID()}@nextcrm`,
-      folder: EmailFolder.SENT,
-      subject: input.subject,
-      fromEmail: account.username,
-      toRecipients: input.to.map((e) => ({ email: e })),
-      ccRecipients: input.cc?.map((e) => ({ email: e })) ?? [],
-      bccRecipients: input.bcc?.map((e) => ({ email: e })) ?? [],
-      bodyText: input.body,
-      sentAt: new Date(),
-      isRead: true,
-    },
-  });
+  await sendEmailForUser(userId, input);
 }

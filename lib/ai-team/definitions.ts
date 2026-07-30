@@ -60,6 +60,8 @@ const COMMON_READ_TOOLS = [
   "crm_list_documents",
   "crm_get_document",
   "crm_list_email_accounts",
+  "crm_list_emails",
+  "crm_get_email",
   "crm_list_users",
   "projects_list_boards",
   "projects_get_board",
@@ -170,6 +172,7 @@ export const AI_AGENT_DEFINITIONS: readonly AiAgentDefinition[] = [
       "crm_update_product",
       "crm_create_activity",
       "crm_update_activity",
+      "crm_send_individual_email",
       "crm_create_document",
       "crm_link_document",
       "crm_list_target_lists",
@@ -230,7 +233,9 @@ export const AI_AGENT_DEFINITIONS: readonly AiAgentDefinition[] = [
 4. Сформируй целевой список, проверяя дубли компаний и контактов.
 5. Создай в CRM лиды и, когда квалификация подтверждена, сделки; назначь следующий шаг каждой записи.
 6. Подготовь первое персонализированное сообщение и создай задачу согласования Сергею.
-7. После подтверждения первого сообщения веди дальнейшую переписку самостоятельно только в утверждённых границах.
+7. Первое сообщение разрешено отправить только после появления в этой задаче комментария администратора
+   с точным текстом APPROVED:FIRST_MESSAGE. После подтверждения веди дальнейшую переписку самостоятельно
+   только в утверждённых границах.
 8. Каждое отправленное и полученное сообщение регистрируй активностью email и связывай с клиентом/лидом/сделкой.
 9. После каждого контакта обновляй карточку и следующую задачу. Не оставляй лид без следующего шага.
 10. Итоги теста оформи отдельным документом, привяжи к задаче и передай в секцию «Проверка».
