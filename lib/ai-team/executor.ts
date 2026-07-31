@@ -5,6 +5,7 @@ import { prismadb } from "@/lib/prisma";
 import { mapLegacyRole } from "@/lib/authz/roles";
 import { allTools } from "@/lib/mcp/tools";
 import { getAiAgentDefinition } from "./definitions";
+import { getAgentKnowledgeInstructions } from "./knowledge";
 import type { AiAgentKey } from "./types";
 import {
   eligibleSectionsForAgent,
@@ -133,8 +134,9 @@ export async function runAgentTask(key: AiAgentKey, taskId?: string) {
   );
   const authzUser = { id: agentUser.id, role: mapLegacyRole(agentUser.role) };
   const client = createOpenAIClient(process.env.OPENAI_API_KEY ?? "");
+  const agentInstructions = await getAgentKnowledgeInstructions(definition);
   const messages: OpenAI.ChatCompletionMessageParam[] = [
-    { role: "system", content: definition.instructions },
+    { role: "system", content: agentInstructions },
     {
       role: "user",
       content: JSON.stringify(

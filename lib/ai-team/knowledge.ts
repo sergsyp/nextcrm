@@ -47,11 +47,7 @@ export async function upsertAgentKnowledgeDocument(
   };
 
   if (existing) {
-    const updated = await prismadb.documents.update({
-      where: { id: existing.id },
-      data: { ...data, updatedAt: new Date() },
-    });
-    return updated.id;
+    return existing.id;
   }
 
   const created = await prismadb.documents.create({
@@ -97,11 +93,7 @@ export async function upsertTeamKnowledgeDocument(
   };
 
   if (existing) {
-    const updated = await prismadb.documents.update({
-      where: { id: existing.id },
-      data: { ...data, updatedAt: new Date() },
-    });
-    return updated.id;
+    return existing.id;
   }
 
   const created = await prismadb.documents.create({
@@ -113,6 +105,20 @@ export async function upsertTeamKnowledgeDocument(
     },
   });
   return created.id;
+}
+
+export async function getAgentKnowledgeInstructions(
+  agent: AiAgentDefinition
+): Promise<string> {
+  const document = await prismadb.documents.findFirst({
+    where: {
+      key: internalKey(agent.key, "role-regulation"),
+      deletedAt: null,
+      status: { not: "SUPERSEDED" },
+    },
+    select: { content_text: true },
+  });
+  return document?.content_text?.trim() || agent.instructions;
 }
 
 export async function createAgentWorkDocument(input: {

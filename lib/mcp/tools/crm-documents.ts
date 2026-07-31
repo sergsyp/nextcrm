@@ -4,6 +4,7 @@ import { PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { minioClient, MINIO_BUCKET, MINIO_PUBLIC_URL } from "@/lib/minio";
 import { randomUUID } from "crypto";
+import { createHash } from "node:crypto";
 import {
   paginationSchema,
   paginationArgs,
@@ -71,6 +72,207 @@ export const crmDocumentTools = [
         },
       });
       return itemResponse(doc);
+    },
+  },
+  {
+    name: "crm_search_documents",
+    description:
+      "Search accessible CRM knowledge documents by text or stable key without downloading every document",
+    schema: z.object({
+      query: z.string().min(1).max(500).optional(),
+      key: z.string().min(1).max(500).optional(),
+      limit: z.number().min(1).max(100).default(20),
+    }).refine((args) => Boolean(args.query || args.key), {
+      message: "query or key is required",
+    }),
+    async handler(
+      args: { query?: string; key?: string; limit: number },
+      userId: string
+    ) {
+      const user = await prismadb.users.findUnique({
+        where: { id: userId },
+        select: { role: true },
+      });
+      if (!user) notFound("User");
+      const access =
+        user.role === "admin"
+          ? {}
+          : { OR: [{ created_by_user: userId }, { assigned_user: userId }] };
+      const textFilter = args.query
+        ? {
+            OR: [
+              { document_name: { contains: args.query, mode: "insensitive" as const } },
+              { description: { contains: args.query, mode: "insensitive" as const } },
+              { content_text: { contains: args.query, mode: "insensitive" as const } },
+            ],
+          }
+        : {};
+      const data = await prismadb.documents.findMany({
+        where: {
+          ...access,
+          ...textFilter,
+          ...(args.key ? { key: args.key } : {}),
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+          document_name: true,
+          description: true,
+          key: true,
+          tags: true,
+          version: true,
+          content_hash: true,
+          updatedAt: true,
+          assigned_user: true,
+        },
+        orderBy: { updatedAt: "desc" },
+        take: args.limit,
+      });
+      return listResponse(data, data.length, 0);
+    },
+  },
+  {
+    name: "crm_update_text_document",
+    description:
+      "Safely update a CRM text document with optimistic version checking, revision history, and audit metadata",
+    schema: z.object({
+      id: z.string().uuid(),
+      expectedVersion: z.number().int().min(1),
+      content_text: z.string().min(1).max(200_000),
+      document_name: z.string().min(1).max(240).optional(),
+      description: z.string().max(2000).optional(),
+      tags: z.record(z.string(), z.unknown()).optional(),
+      changeSummary: z.string().min(1).max(1000),
+      changeReason: z.string().min(1).max(2000),
+      source: z.string().min(1).max(1000),
+    }),
+    async handler(
+      args: {
+        id: string;
+        expectedVersion: number;
+        content_text: string;
+        document_name?: string;
+        description?: string;
+        tags?: Record<string, unknown>;
+        changeSummary: string;
+        changeReason: string;
+        source: string;
+      },
+      userId: string
+    ) {
+      const user = await prismadb.users.findUnique({
+        where: { id: userId },
+        select: { role: true },
+      });
+      if (!user) notFound("User");
+      const existing = await prismadb.documents.findFirst({
+        where: {
+          id: args.id,
+          deletedAt: null,
+          ...(user.role === "admin"
+            ? {}
+            : { OR: [{ created_by_user: userId }, { assigned_user: userId }] }),
+        },
+      });
+      if (!existing) notFound("Document");
+      if (existing.version !== args.expectedVersion) {
+        throw new Error(
+          `CONFLICT: expected version ${args.expectedVersion}, current version ${existing.version}`
+        );
+      }
+
+      const now = new Date();
+      const nextVersion = existing.version + 1;
+      const nextHash = createHash("sha256")
+        .update(args.content_text)
+        .digest("hex");
+      const oldTags =
+        existing.tags && typeof existing.tags === "object" && !Array.isArray(existing.tags)
+          ? (existing.tags as Record<string, unknown>)
+          : {};
+      const nextTags = {
+        ...oldTags,
+        ...(args.tags ?? {}),
+        knowledgeChange: {
+          summary: args.changeSummary,
+          reason: args.changeReason,
+          source: args.source,
+          updatedBy: userId,
+          updatedAt: now.toISOString(),
+        },
+      };
+
+      const updated = await prismadb.$transaction(async (tx) => {
+        await tx.documents.create({
+          data: {
+            v: existing.v,
+            document_name: `${existing.document_name} — версия ${existing.version}`,
+            description: existing.description,
+            document_file_mimeType: existing.document_file_mimeType,
+            document_file_url: existing.document_file_url,
+            key: existing.key
+              ? `${existing.key}.history.v${existing.version}`
+              : `history/${existing.id}/v${existing.version}`,
+            size: existing.size,
+            content_text: existing.content_text,
+            content_hash: existing.content_hash,
+            summary: existing.summary,
+            processing_status: existing.processing_status,
+            status: "SUPERSEDED",
+            visibility: existing.visibility,
+            tags: {
+              ...oldTags,
+              kind: "knowledge-revision",
+              canonicalDocumentId: existing.id,
+              supersededAt: now.toISOString(),
+              supersededBy: userId,
+            },
+            assigned_user: existing.assigned_user,
+            created_by_user: userId,
+            createdBy: userId,
+            version: existing.version,
+            parent_document_id: existing.id,
+          },
+        });
+        const result = await tx.documents.updateMany({
+          where: {
+            id: existing.id,
+            version: args.expectedVersion,
+            deletedAt: null,
+          },
+          data: {
+            document_name: args.document_name ?? existing.document_name,
+            description: args.description ?? existing.description,
+            content_text: args.content_text,
+            content_hash: nextHash,
+            size: Buffer.byteLength(args.content_text),
+            tags: nextTags as any,
+            processing_status: "READY",
+            version: nextVersion,
+            updatedAt: now,
+          },
+        });
+        if (result.count !== 1) {
+          throw new Error("CONFLICT: document changed during update");
+        }
+        await (tx as any).crm_AuditLog.create({
+          data: {
+            entityType: "document",
+            entityId: existing.id,
+            action: "updated",
+            userId,
+            changes: [
+              { field: "version", old: existing.version, new: nextVersion },
+              { field: "content_hash", old: existing.content_hash, new: nextHash },
+              { field: "changeSummary", old: null, new: args.changeSummary },
+              { field: "changeReason", old: null, new: args.changeReason },
+              { field: "source", old: null, new: args.source },
+            ],
+          },
+        });
+        return tx.documents.findUniqueOrThrow({ where: { id: existing.id } });
+      });
+      return itemResponse(updated);
     },
   },
   {
