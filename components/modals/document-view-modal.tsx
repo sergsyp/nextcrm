@@ -20,6 +20,9 @@ const DocumentViewModal = ({
   const isInternalDocument =
     typeof document.document_file_url === "string" &&
     document.document_file_url.startsWith("internal://");
+  const hasTextContent =
+    typeof document.content_text === "string" &&
+    document.content_text.trim().length > 0;
 
   const downloadInternalDocument = () => {
     const blob = new Blob([document.content_text || ""], {
@@ -55,21 +58,27 @@ const DocumentViewModal = ({
     "image/webp",
   ];
 
-  if (isInternalDocument) {
+  if (hasTextContent || isInternalDocument) {
     return (
       <ModalDocumentView isOpen={isOpen} onClose={onClose}>
         <div className="flex h-full min-h-0 flex-col">
           <div className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain whitespace-pre-wrap rounded-md border bg-muted/20 p-5 text-sm leading-6 [-webkit-overflow-scrolling:touch]">
             {document.content_text || "Document content is empty."}
           </div>
-          <div className="flex w-full items-center justify-end gap-2 pt-6">
+          <div className="flex w-full flex-col gap-2 pt-4 sm:flex-row sm:items-center sm:justify-end">
             <Button
+              className="w-full sm:w-auto"
               disabled={loading || !document.content_text}
               onClick={downloadInternalDocument}
             >
               Download
             </Button>
-            <Button disabled={loading} variant={"outline"} onClick={onClose}>
+            <Button
+              className="w-full sm:w-auto"
+              disabled={loading}
+              variant={"outline"}
+              onClick={onClose}
+            >
               Cancel
             </Button>
           </div>
