@@ -59,7 +59,7 @@ const DocumentViewModal = ({
     return (
       <ModalDocumentView isOpen={isOpen} onClose={onClose}>
         <div className="flex h-full min-h-0 flex-col">
-          <div className="min-h-0 flex-1 overflow-auto whitespace-pre-wrap rounded-md border bg-muted/20 p-5 text-sm leading-6">
+          <div className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain whitespace-pre-wrap rounded-md border bg-muted/20 p-5 text-sm leading-6 [-webkit-overflow-scrolling:touch]">
             {document.content_text || "Document content is empty."}
           </div>
           <div className="flex w-full items-center justify-end gap-2 pt-6">
