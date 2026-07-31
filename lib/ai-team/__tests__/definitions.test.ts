@@ -41,6 +41,8 @@ describe("AI team configuration", () => {
     expect(content).toContain("первое сообщение новому клиенту");
     expect(content).toContain("самостоятельно продолжает ту же переписку");
     expect(content).toContain("типовой доской Projects/Boards");
-    expect(content).toContain("нет конструктора");
+    expect(content).toContain("crm_send_individual_email");
+    expect(content).toContain("crm_publish_landing");
+    expect(content).toContain("Встроенного визуального");
   });
 });

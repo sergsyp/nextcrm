@@ -3,14 +3,15 @@ import { prismadb } from "@/lib/prisma";
 import { paginationSchema, paginationArgs, listResponse } from "../helpers";
 import { sendEmailForUser } from "@/lib/email/send-message";
 import { hasFirstMessageApproval } from "@/lib/email/agent-approval";
+import { emailAccountAccessWhere } from "@/lib/email/account-access";
 
 export const crmEmailAccountTools = [
   {
     name: "crm_list_email_accounts",
-    description: "List the authenticated user's connected email accounts",
+    description: "List email accounts owned by or delegated to the authenticated user",
     schema: z.object({ ...paginationSchema }),
     async handler(args: { limit: number; offset: number }, userId: string) {
-      const where = { userId, isActive: true };
+      const where = { isActive: true, ...emailAccountAccessWhere(userId) };
       const [data, total] = await Promise.all([
         prismadb.emailAccount.findMany({
           where,
@@ -52,13 +53,16 @@ export const crmEmailAccountTools = [
       userId: string
     ) {
       const account = await prismadb.emailAccount.findFirst({
-        where: { id: args.accountId, userId, isActive: true },
+        where: {
+          id: args.accountId,
+          isActive: true,
+          ...emailAccountAccessWhere(userId),
+        },
         select: { id: true },
       });
       if (!account) throw new Error("NOT_FOUND");
       const where = {
         emailAccountId: account.id,
-        userId,
         isDeleted: false,
         ...(args.folder && { folder: args.folder }),
       } as const;
@@ -76,11 +80,15 @@ export const crmEmailAccountTools = [
   },
   {
     name: "crm_get_email",
-    description: "Get one synced email owned by the authenticated user",
+    description: "Get one synced email from an owned or delegated email account",
     schema: z.object({ id: z.string().uuid() }),
     async handler(args: { id: string }, userId: string) {
       const email = await prismadb.email.findFirst({
-        where: { id: args.id, userId, isDeleted: false },
+        where: {
+          id: args.id,
+          isDeleted: false,
+          account: emailAccountAccessWhere(userId),
+        },
       });
       if (!email) throw new Error("NOT_FOUND");
       return { data: email };
@@ -114,7 +122,11 @@ export const crmEmailAccountTools = [
       let inReplyTo: string | undefined;
       if (args.replyToEmailId) {
         const parent = await prismadb.email.findFirst({
-          where: { id: args.replyToEmailId, userId, isDeleted: false },
+          where: {
+            id: args.replyToEmailId,
+            isDeleted: false,
+            account: emailAccountAccessWhere(userId),
+          },
           select: { rfcMessageId: true },
         });
         if (!parent) throw new Error("NOT_FOUND");

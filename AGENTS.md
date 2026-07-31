@@ -117,3 +117,14 @@ gh pr create --base main --head dev --title "<type>: <summary>" --body "..."
 - When the user says "create a PR" without further context, assume `dev → main`.
 
 ---
+
+## 5. AI Team Knowledge Maintenance
+
+`lib/ai-team/team-knowledge.ts` and the operational rules in
+`lib/ai-team/definitions.ts` are the source of truth for the CRM AI team's
+knowledge. Whenever an agent capability, approval rule, tool, channel, or
+workflow changes, update these documents and their tests in the same change.
+After deploying such a change, rerun `npm run ai-team:setup -- --owner=<admin email>`
+so the stored CRM knowledge documents are refreshed.
+
+---

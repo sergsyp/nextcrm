@@ -23,13 +23,24 @@ import {
   setEmailAccountActive,
   testEmailConnection,
   listImapFolders,
+  setEmailAccountDelegates,
 } from "@/actions/emails/accounts";
-import type { getEmailAccounts } from "@/actions/emails/accounts";
+import type {
+  getEmailAccounts,
+  getEmailDelegateCandidates,
+} from "@/actions/emails/accounts";
 import { triggerSync } from "@/actions/emails/sync";
 
 type Account = Awaited<ReturnType<typeof getEmailAccounts>>[number];
+type DelegateCandidate = Awaited<ReturnType<typeof getEmailDelegateCandidates>>[number];
 
-export function EmailAccountsList({ accounts }: { accounts: Account[] }) {
+export function EmailAccountsList({
+  accounts,
+  delegateCandidates,
+}: {
+  accounts: Account[];
+  delegateCandidates: DelegateCandidate[];
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -134,6 +145,19 @@ export function EmailAccountsList({ accounts }: { accounts: Account[] }) {
     }
   }
 
+  async function handleDelegate(
+    account: Account,
+    userId: string,
+    enabled: boolean
+  ) {
+    const current = account.delegates.map((delegate) => delegate.user.id);
+    await setEmailAccountDelegates(
+      account.id,
+      enabled ? [...current, userId] : current.filter((id) => id !== userId)
+    );
+    refresh();
+  }
+
   return (
     <div className="space-y-3">
       {accounts.length === 0 && (
@@ -153,6 +177,28 @@ export function EmailAccountsList({ accounts }: { accounts: Account[] }) {
               <p className="text-xs text-muted-foreground">
                 Last synced: {new Date(acc.lastSyncedAt).toLocaleString()}
               </p>
+            )}
+            {delegateCandidates.length > 0 && (
+              <div className="flex flex-wrap items-center gap-3 pt-2">
+                <span className="text-xs text-muted-foreground">Доступ агентам:</span>
+                {delegateCandidates.map((candidate) => {
+                  const enabled = acc.delegates.some(
+                    (delegate) => delegate.user.id === candidate.id
+                  );
+                  return (
+                    <label key={candidate.id} className="flex items-center gap-1.5 text-xs">
+                      <input
+                        type="checkbox"
+                        checked={enabled}
+                        onChange={(event) =>
+                          handleDelegate(acc, candidate.id, event.target.checked)
+                        }
+                      />
+                      {candidate.name ?? candidate.email}
+                    </label>
+                  );
+                })}
+              </div>
             )}
           </div>
           <div className="flex items-center gap-2">

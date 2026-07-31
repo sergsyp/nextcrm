@@ -4,6 +4,7 @@ import { EmailFolder } from "@prisma/client";
 import { prismadb } from "@/lib/prisma";
 import { decrypt } from "@/lib/email-crypto";
 import { assertPublicHost, HostNotAllowedError } from "@/lib/net/host-guard";
+import { emailAccountAccessWhere } from "@/lib/email/account-access";
 
 export type SendEmailInput = {
   accountId: string;
@@ -18,7 +19,11 @@ export type SendEmailInput = {
 
 export async function sendEmailForUser(userId: string, input: SendEmailInput) {
   const account = await prismadb.emailAccount.findFirst({
-    where: { id: input.accountId, userId, isActive: true },
+    where: {
+      id: input.accountId,
+      isActive: true,
+      ...emailAccountAccessWhere(userId),
+    },
   });
   if (!account) throw new Error("Account not found");
 
@@ -50,7 +55,7 @@ export async function sendEmailForUser(userId: string, input: SendEmailInput) {
   return prismadb.email.create({
     data: {
       emailAccountId: input.accountId,
-      userId,
+      userId: account.userId,
       rfcMessageId: info.messageId ?? `local-${crypto.randomUUID()}@nextcrm`,
       folder: EmailFolder.SENT,
       subject: input.subject,
