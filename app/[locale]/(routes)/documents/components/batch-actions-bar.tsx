@@ -18,6 +18,7 @@ import { DocumentSystemType } from "@prisma/client";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { DocumentRow } from "../data/schema";
+import { useTranslations } from "next-intl";
 
 interface BatchActionsBarProps {
   table: Table<DocumentRow>;
@@ -25,6 +26,7 @@ interface BatchActionsBarProps {
 }
 
 export function BatchActionsBar({ table, accounts }: BatchActionsBarProps) {
+  const t = useTranslations("DocumentsPage");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -40,10 +42,10 @@ export function BatchActionsBar({ table, accounts }: BatchActionsBarProps) {
       setLoading(true);
       await bulkDeleteDocuments(selectedIds);
       table.toggleAllRowsSelected(false);
-      toast.success(`${count} document(s) deleted`);
+      toast.success(t("bulkDeleted", { count }));
       router.refresh();
     } catch {
-      toast.error("Failed to delete documents");
+      toast.error(t("bulkDeleteError"));
     } finally {
       setLoading(false);
       setDeleteOpen(false);
@@ -53,20 +55,20 @@ export function BatchActionsBar({ table, accounts }: BatchActionsBarProps) {
   const handleChangeType = async (type: string) => {
     try {
       await bulkChangeType(selectedIds, type as DocumentSystemType);
-      toast.success(`Type updated for ${count} document(s)`);
+      toast.success(t("bulkTypeUpdated", { count }));
       router.refresh();
     } catch {
-      toast.error("Failed to update type");
+      toast.error(t("bulkTypeError"));
     }
   };
 
   const handleLinkAccount = async (accountId: string) => {
     try {
       await bulkLinkToAccount(selectedIds, accountId);
-      toast.success(`${count} document(s) linked to account`);
+      toast.success(t("bulkLinked", { count }));
       router.refresh();
     } catch {
-      toast.error("Failed to link documents");
+      toast.error(t("bulkLinkError"));
     }
   };
 
@@ -79,11 +81,11 @@ export function BatchActionsBar({ table, accounts }: BatchActionsBarProps) {
         loading={loading}
       />
       <div className="flex items-center gap-3 rounded-md border bg-muted/50 px-4 py-2 text-sm">
-        <span className="font-medium">{count} selected</span>
+        <span className="font-medium">{t("selected", { count })}</span>
 
         <Select onValueChange={handleLinkAccount}>
           <SelectTrigger className="h-8 w-[160px]">
-            <SelectValue placeholder="Link to Account" />
+            <SelectValue placeholder={t("linkAccount")} />
           </SelectTrigger>
           <SelectContent>
             {accounts.map((a) => (
@@ -96,13 +98,13 @@ export function BatchActionsBar({ table, accounts }: BatchActionsBarProps) {
 
         <Select onValueChange={handleChangeType}>
           <SelectTrigger className="h-8 w-[140px]">
-            <SelectValue placeholder="Change Type" />
+            <SelectValue placeholder={t("changeType")} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="RECEIPT">Receipt</SelectItem>
-            <SelectItem value="CONTRACT">Contract</SelectItem>
-            <SelectItem value="OFFER">Offer</SelectItem>
-            <SelectItem value="OTHER">Other</SelectItem>
+            <SelectItem value="RECEIPT">{t("receipt")}</SelectItem>
+            <SelectItem value="CONTRACT">{t("contract")}</SelectItem>
+            <SelectItem value="OFFER">{t("offer")}</SelectItem>
+            <SelectItem value="OTHER">{t("other")}</SelectItem>
           </SelectContent>
         </Select>
 
@@ -111,7 +113,7 @@ export function BatchActionsBar({ table, accounts }: BatchActionsBarProps) {
           size="sm"
           onClick={() => setDeleteOpen(true)}
         >
-          Delete
+          {t("delete")}
         </Button>
       </div>
     </>

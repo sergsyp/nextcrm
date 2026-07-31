@@ -500,7 +500,11 @@ export function UpdateAccountForm({
                       <SelectContent className="flex overflow-y-auto h-56">
                         {industries.map((industry: any) => (
                           <SelectItem key={industry.id} value={industry.id}>
-                            {industry.name}
+                            {{
+                              "Public sector": t("industryPublicSector"),
+                              Other: t("industryOther"),
+                              "SW Development": t("industrySoftwareDevelopment"),
+                            }[industry.name as string] ?? industry.name}
                           </SelectItem>
                         ))}
                       </SelectContent>

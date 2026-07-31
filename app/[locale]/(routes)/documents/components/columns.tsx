@@ -8,6 +8,8 @@ import { DataTableColumnHeader } from "./data-table-column-header";
 import { DataTableRowActions } from "./data-table-row-actions";
 import { ProcessingStatusBadge } from "./processing-status-badge";
 import moment from "moment";
+import { useTranslations } from "next-intl";
+import type { Column } from "@tanstack/react-table";
 
 const MIME_LABELS: Record<string, { label: string; className: string }> = {
   "application/pdf": { label: "PDF", className: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200" },
@@ -31,30 +33,103 @@ const TYPE_COLORS: Record<string, string> = {
   OTHER: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200",
 };
 
+function TranslatedColumnHeader({
+  column,
+  labelKey,
+}: {
+  column: Column<DocumentRow, unknown>;
+  labelKey: "date" | "document" | "type" | "account" | "status" | "assignedTo";
+}) {
+  const t = useTranslations("DocumentsPage");
+  return <DataTableColumnHeader column={column} title={t(labelKey)} />;
+}
+
+function SelectAllCheckbox({ table }: { table: any }) {
+  const t = useTranslations("DocumentsPage");
+  return (
+    <Checkbox
+      checked={table.getIsAllPageRowsSelected()}
+      onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+      aria-label={t("selectAll")}
+    />
+  );
+}
+
+function SelectRowCheckbox({ row }: { row: any }) {
+  const t = useTranslations("DocumentsPage");
+  return (
+    <Checkbox
+      checked={row.getIsSelected()}
+      onCheckedChange={(value) => row.toggleSelected(!!value)}
+      aria-label={t("selectRow")}
+    />
+  );
+}
+
+function DocumentCell({ row }: { row: any }) {
+  const t = useTranslations("DocumentsPage");
+  const mimeLabel = getMimeLabel(row.original.document_file_mimeType);
+  const summary = row.original.summary;
+  const isProcessing =
+    row.original.processing_status === "PROCESSING" ||
+    row.original.processing_status === "PENDING";
+
+  return (
+    <div className="flex items-start gap-3">
+      <Badge variant="outline" className={`text-xs shrink-0 ${mimeLabel.className}`}>
+        {mimeLabel.label}
+      </Badge>
+      <div className="min-w-0">
+        <span className="font-medium truncate block">
+          {row.getValue("document_name")}
+        </span>
+        {isProcessing ? (
+          <span className="text-xs text-muted-foreground italic">
+            {t("generatingSummary")}
+          </span>
+        ) : summary ? (
+          <span className="text-xs text-muted-foreground line-clamp-1">
+            {summary}
+          </span>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function DocumentTypeCell({ type }: { type: string | null }) {
+  const t = useTranslations("DocumentsPage");
+  if (!type) return <span className="text-muted-foreground">—</span>;
+  const labels: Record<string, "receipt" | "contract" | "offer" | "other"> = {
+    RECEIPT: "receipt",
+    CONTRACT: "contract",
+    OFFER: "offer",
+    OTHER: "other",
+  };
+  return (
+    <Badge variant="outline" className={`text-xs ${TYPE_COLORS[type] ?? ""}`}>
+      {labels[type] ? t(labels[type]) : type}
+    </Badge>
+  );
+}
+
+function AssignedUserCell({ user }: { user: { name: string | null } | null }) {
+  const t = useTranslations("DocumentsPage");
+  return <div className="w-[120px] text-sm">{user?.name ?? t("unassigned")}</div>;
+}
+
 export const columns: ColumnDef<DocumentRow>[] = [
   {
     id: "select",
-    header: ({ table }) => (
-      <Checkbox
-        checked={table.getIsAllPageRowsSelected()}
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-      />
-    ),
+    header: ({ table }) => <SelectAllCheckbox table={table} />,
+    cell: ({ row }) => <SelectRowCheckbox row={row} />,
     enableSorting: false,
     enableHiding: false,
   },
   {
     accessorKey: "createdAt",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Date" />
+      <TranslatedColumnHeader column={column} labelKey="date" />
     ),
     cell: ({ row }) => (
       <div className="w-[80px] text-muted-foreground text-sm">
@@ -66,55 +141,24 @@ export const columns: ColumnDef<DocumentRow>[] = [
   {
     accessorKey: "document_name",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Document" />
+      <TranslatedColumnHeader column={column} labelKey="document" />
     ),
-    cell: ({ row }) => {
-      const mimeLabel = getMimeLabel(row.original.document_file_mimeType);
-      const summary = row.original.summary;
-      const isProcessing = row.original.processing_status === "PROCESSING" || row.original.processing_status === "PENDING";
-      return (
-        <div className="flex items-start gap-3">
-          <Badge variant="outline" className={`text-xs shrink-0 ${mimeLabel.className}`}>
-            {mimeLabel.label}
-          </Badge>
-          <div className="min-w-0">
-            <span className="font-medium truncate block">
-              {row.getValue("document_name")}
-            </span>
-            {isProcessing ? (
-              <span className="text-xs text-muted-foreground italic">
-                Generating summary...
-              </span>
-            ) : summary ? (
-              <span className="text-xs text-muted-foreground line-clamp-1">
-                {summary}
-              </span>
-            ) : null}
-          </div>
-        </div>
-      );
-    },
+    cell: ({ row }) => <DocumentCell row={row} />,
   },
   {
     accessorKey: "document_system_type",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Type" />
+      <TranslatedColumnHeader column={column} labelKey="type" />
     ),
-    cell: ({ row }) => {
-      const type = row.getValue("document_system_type") as string | null;
-      if (!type) return <span className="text-muted-foreground">—</span>;
-      return (
-        <Badge variant="outline" className={`text-xs ${TYPE_COLORS[type] ?? ""}`}>
-          {type}
-        </Badge>
-      );
-    },
+    cell: ({ row }) => (
+      <DocumentTypeCell type={row.getValue("document_system_type") as string | null} />
+    ),
     filterFn: (row, id, value) => value.includes(row.getValue(id)),
   },
   {
     id: "account",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Account" />
+      <TranslatedColumnHeader column={column} labelKey="account" />
     ),
     cell: ({ row }) => {
       const accounts = row.original.accounts;
@@ -129,7 +173,7 @@ export const columns: ColumnDef<DocumentRow>[] = [
   {
     accessorKey: "processing_status",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Status" />
+      <TranslatedColumnHeader column={column} labelKey="status" />
     ),
     cell: ({ row }) => (
       <ProcessingStatusBadge status={row.getValue("processing_status")} />
@@ -139,12 +183,12 @@ export const columns: ColumnDef<DocumentRow>[] = [
   {
     accessorKey: "assigned_to_user",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Assigned to" />
+      <TranslatedColumnHeader column={column} labelKey="assignedTo" />
     ),
     cell: ({ row }) => (
-      <div className="w-[120px] text-sm">
-        {(row.getValue("assigned_to_user") as { name: string | null } | null)?.name ?? "Unassigned"}
-      </div>
+      <AssignedUserCell
+        user={row.getValue("assigned_to_user") as { name: string | null } | null}
+      />
     ),
     enableSorting: false,
   },

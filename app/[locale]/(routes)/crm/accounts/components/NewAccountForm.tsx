@@ -440,7 +440,11 @@ export function NewAccountForm({ industries, onFinish }: Props) {
                       <SelectContent className="flex overflow-y-auto h-56">
                         {industries.map((industry) => (
                           <SelectItem key={industry.id} value={industry.id}>
-                            {industry.name}
+                            {{
+                              "Public sector": t("industryPublicSector"),
+                              Other: t("industryOther"),
+                              "SW Development": t("industrySoftwareDevelopment"),
+                            }[industry.name] ?? industry.name}
                           </SelectItem>
                         ))}
                       </SelectContent>

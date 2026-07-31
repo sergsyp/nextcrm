@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/button";
 import ModalDocumentView from "../ui/modal-document-view";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 
 interface AlertModalProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ const DocumentViewModal = ({
   loading,
   document,
 }: AlertModalProps) => {
+  const t = useTranslations("DocumentsPage");
   const isInternalDocument =
     typeof document.document_file_url === "string" &&
     document.document_file_url.startsWith("internal://");
@@ -63,7 +65,7 @@ const DocumentViewModal = ({
       <ModalDocumentView isOpen={isOpen} onClose={onClose}>
         <div className="flex h-full min-h-0 flex-col">
           <div className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain whitespace-pre-wrap rounded-md border bg-muted/20 p-5 text-sm leading-6 [-webkit-overflow-scrolling:touch]">
-            {document.content_text || "Document content is empty."}
+            {document.content_text || t("emptyContent")}
           </div>
           <div className="flex w-full flex-col gap-2 pt-4 sm:flex-row sm:items-center sm:justify-end">
             <Button
@@ -71,7 +73,7 @@ const DocumentViewModal = ({
               disabled={loading || !document.content_text}
               onClick={downloadInternalDocument}
             >
-              Download
+              {t("download")}
             </Button>
             <Button
               className="w-full sm:w-auto"
@@ -79,7 +81,7 @@ const DocumentViewModal = ({
               variant={"outline"}
               onClick={onClose}
             >
-              Cancel
+              {t("cancel")}
             </Button>
           </div>
         </div>
@@ -97,12 +99,12 @@ const DocumentViewModal = ({
               // eslint-disable-next-line @next/next/no-img-element
               <img alt="Image preview" src={imageUrl} className="object-contain w-full h-full" />
             ) : (
-              <p className="text-muted-foreground">No preview available</p>
+              <p className="text-muted-foreground">{t("noPreview")}</p>
             )}
           </div>
           <div className="pt-6 space-x-2 flex items-center justify-end w-full ">
             <Button disabled={loading} variant={"outline"} onClick={onClose}>
-              Cancel
+              {t("cancel")}
             </Button>
           </div>
         </div>
@@ -124,7 +126,7 @@ const DocumentViewModal = ({
           />
           <div className="pt-6 space-x-2 flex items-center justify-end w-full ">
             <Button disabled={loading} variant={"outline"} onClick={onClose}>
-              Cancel
+              {t("cancel")}
             </Button>
           </div>
         </div>
@@ -134,13 +136,13 @@ const DocumentViewModal = ({
     return (
       <ModalDocumentView isOpen={isOpen} onClose={onClose}>
         <div className="flex flex-col h-full ">
-          This format can not be previewed. Please download the file to view it.
+          {t("previewUnavailable")}
           <Button>
-            <Link href={document.document_file_url}> Download</Link>
+            <Link href={document.document_file_url}>{t("download")}</Link>
           </Button>
           <div className="pt-6 space-x-2 flex items-center justify-end w-full ">
             <Button disabled={loading} variant={"outline"} onClick={onClose}>
-              Cancel
+              {t("cancel")}
             </Button>
           </div>
         </div>
