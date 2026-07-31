@@ -67,7 +67,7 @@ export async function setEmailAccountDelegates(
   });
   if (!account) throw new Error("Not found");
 
-  const uniqueIds = [...new Set(delegateUserIds)];
+  const uniqueIds = Array.from(new Set(delegateUserIds));
   const allowed = await prismadb.users.findMany({
     where: {
       id: { in: uniqueIds },
