@@ -74,6 +74,19 @@ else
   echo "==> Database already has $USER_COUNT user(s), skipping seed."
 fi
 
-# --- 6. Start the application ---
+# --- 6. Keep the AI team and its knowledge base in sync ---
+# The setup command is idempotent: it creates missing agents/board records and
+# updates managed knowledge documents on every deployment. An explicit owner is
+# preferred; TEST_USER_EMAIL is the seeded admin in the bundled Docker setup.
+AI_TEAM_OWNER="${AI_TEAM_OWNER_EMAIL:-$TEST_USER_EMAIL}"
+if [ -n "$AI_TEAM_OWNER" ]; then
+  echo "==> Synchronizing AI team configuration..."
+  AI_TEAM_OWNER_EMAIL="$AI_TEAM_OWNER" tsx scripts/setup-ai-team.ts
+  echo "==> AI team configuration synchronized."
+else
+  echo "WARN: AI_TEAM_OWNER_EMAIL is not set; skipping AI team synchronization."
+fi
+
+# --- 7. Start the application ---
 echo "==> Starting NextCRM..."
 exec node server.js
