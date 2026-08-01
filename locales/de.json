@@ -14,7 +14,11 @@
       "contracts": "Verträge",
       "products": "Produkte",
       "targets": "Zielgruppen",
-      "targetLists": "Ziellisten"
+      "targetLists": "Ziellisten",
+      "dashboard": "Dashboard",
+      "myDashboard": "My Dashboard",
+      "overview": "Overview",
+      "approvals": "Approvals"
     },
     "projects": "Projekte",
     "emails": "E-Mails",
@@ -22,7 +26,16 @@
     "reports": "Berichte",
     "documents": "Dokumente",
     "storage": "Speicher",
-    "settings": "Einstellungen"
+    "settings": "Einstellungen",
+    "reportItems": {
+      "dashboard": "Dashboard",
+      "sales": "Sales",
+      "leads": "Leads",
+      "accounts": "Accounts",
+      "activity": "Activity",
+      "campaigns": "Campaigns",
+      "users": "Users"
+    }
   },
   "DashboardPage": {
     "containerTitle": "Dashboard",
@@ -395,7 +408,10 @@
       "projectPlaceholder": "Projekt auswählen",
       "cancel": "Abbrechen",
       "create": "Erstellen",
-      "successMsg": "Aufgabe erfolgreich erstellt"
+      "successMsg": "Aufgabe erfolgreich erstellt",
+      "dueDatePlaceholder": "Pick a due date",
+      "sectionLabel": "Section",
+      "sectionPlaceholder": "Select a section"
     },
     "dataTable": {
       "filterPlaceholder": "Projekte filtern...",
@@ -418,7 +434,49 @@
       "editProject": "Projekt bearbeiten",
       "editProjectDesc": "Projektdetails bearbeiten",
       "deleteError": "Fehler beim Löschen des Projekts",
-      "watchError": "Fehler beim Aktualisieren des Beobachtungsstatus"
+      "watchError": "Fehler beim Aktualisieren des Beobachtungsstatus",
+      "pageOf": "Page {page} of {total}"
+    },
+    "deleteProject": {
+      "trigger": "Delete project",
+      "title": "Delete project",
+      "description": "Are you sure you want to delete this project? It cannot be restored. All tasks will also be deleted.",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "deleting": "Deleting...",
+      "success": "Project {name} deleted successfully",
+      "error": "Could not delete the project. Please try again."
+    },
+    "conversation": {
+      "placeholder": "Your comment…",
+      "add": "Add",
+      "title": "Team conversation",
+      "description": "Discuss the task with your team.",
+      "success": "Comment added",
+      "error": "Could not add the comment"
+    },
+    "kanban": {
+      "untitled": "Untitled",
+      "overdue": "This task is overdue",
+      "done": "Task completed",
+      "view": "View",
+      "edit": "Edit",
+      "markDone": "Mark as done",
+      "delete": "Delete",
+      "dueDate": "Due date",
+      "priority": "Priority",
+      "priorities": {
+        "low": "Low",
+        "normal": "Normal",
+        "medium": "Medium",
+        "high": "High",
+        "critical": "Critical"
+      },
+      "createSection": "Create new section",
+      "createSectionDescription": "Add a new section to this project.",
+      "updateTask": "Update task",
+      "updateTaskDescription": "Edit the title, description, due date, priority, and assignee.",
+      "sections": "{count} sections"
     }
   },
   "DocumentsPage": {
@@ -607,6 +665,8 @@
     "settings": "Einstellungen",
     "dashboard": "Dashboard",
     "profileSettings": "Profileinstellungen",
-    "logout": "Abmelden"
+    "logout": "Abmelden",
+    "todoDashboard": "Todo Dashboard",
+    "salesDashboard": "Sales Dashboard"
   }
 }

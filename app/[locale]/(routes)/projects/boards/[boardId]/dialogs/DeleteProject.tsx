@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 
 import React, { useEffect, useState } from "react";
 import { deleteProject } from "@/actions/projects/delete-project";
+import { useTranslations } from "next-intl";
 
 type Props = {
   boardId: string;
@@ -29,6 +30,7 @@ const DeleteProjectDialog = ({ boardId, boardName }: Props) => {
   const [isMounted, setIsMounted] = useState(false);
 
   const router = useRouter();
+  const t = useTranslations("ProjectsPage.deleteProject");
 
   useEffect(() => {
     setIsMounted(true);
@@ -47,10 +49,10 @@ const DeleteProjectDialog = ({ boardId, boardName }: Props) => {
       if (result?.error) {
         toast.error(result.error);
       } else {
-        toast.success(`Project: ${boardName} deleted successfully`);
+        toast.success(t("success", { name: boardName }));
       }
     } catch (error) {
-      toast.error("Something went wrong while deleting project. Please try again.");
+      toast.error(t("error"));
     } finally {
       setOpen(false);
       setIsLoading(false);
@@ -64,17 +66,16 @@ const DeleteProjectDialog = ({ boardId, boardName }: Props) => {
       <DialogTrigger>
         <Button className="px-2" variant={"destructive"} asChild>
           <div className="px-3 gap-2">
-            Delete project
+            {t("trigger")}
             <TrashIcon size={15} />
           </div>
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Delete project</DialogTitle>
+          <DialogTitle>{t("title")}</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete this project? You will not be able
-            to recover it. All tasks will be deleted as well.
+            {t("description")}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
@@ -82,10 +83,10 @@ const DeleteProjectDialog = ({ boardId, boardName }: Props) => {
             variant="outline"
             onClick={() => setOpen(false)}
           >
-            Cancel
+            {t("cancel")}
           </Button>
           <Button variant="destructive" onClick={onDelete}>
-            {isLoading ? "Deleting..." : "Delete"}
+            {isLoading ? t("deleting") : t("delete")}
           </Button>
         </DialogFooter>
       </DialogContent>

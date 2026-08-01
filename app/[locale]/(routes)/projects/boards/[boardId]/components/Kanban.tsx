@@ -73,6 +73,7 @@ import { updateSectionTitle } from "@/actions/projects/update-section-title";
 import { createTaskInBoard } from "@/actions/projects/create-task-in-board";
 import { deleteTask } from "@/actions/projects/delete-task";
 import { updateKanbanPosition } from "@/actions/projects/update-kanban-position";
+import { useTranslations } from "next-intl";
 
 let timer: any;
 const timeout = 1000;
@@ -89,6 +90,7 @@ interface Task {
 
 // Draggable Task Item Component
 function TaskItem({ task, onDelete, onDone, onEdit, router }: any) {
+  const t = useTranslations("ProjectsPage.kanban");
   const {
     attributes,
     listeners,
@@ -116,7 +118,7 @@ function TaskItem({ task, onDelete, onDone, onEdit, router }: any) {
     >
       <div className="flex flex-row justify-between mx-auto w-full py-1">
         <h2 className="grow font-bold text-sm ">
-          {task.title === "" ? "Untitled" : task.title}
+          {task.title === "" ? t("untitled") : task.title}
         </h2>
         <div className="ml-1">
           {task?.dueDateAt &&
@@ -127,7 +129,7 @@ function TaskItem({ task, onDelete, onDone, onEdit, router }: any) {
                   <ExclamationTriangleIcon className="w-4 h-4 text-red-500" />
                 </HoverCardTrigger>
                 <HoverCardContent>
-                  Attention! This task is overdue!
+                  {t("overdue")}
                 </HoverCardContent>
               </HoverCard>
             )}
@@ -136,7 +138,7 @@ function TaskItem({ task, onDelete, onDone, onEdit, router }: any) {
               <HoverCardTrigger>
                 <Check className="w-4 h-4 text-green-500" />
               </HoverCardTrigger>
-              <HoverCardContent>This task is done!</HoverCardContent>
+              <HoverCardContent>{t("done")}</HoverCardContent>
             </HoverCard>
           )}
         </div>
@@ -150,12 +152,12 @@ function TaskItem({ task, onDelete, onDone, onEdit, router }: any) {
               onClick={() => router.push(`/projects/tasks/viewtask/${task.id}`)}
             >
               <EyeIcon className="w-4 h-4 opacity-50" />
-              View
+              {t("view")}
             </DropdownMenuItem>
             {task.taskStatus !== "COMPLETE" && (
               <DropdownMenuItem className="gap-2" onClick={() => onEdit(task)}>
                 <Pencil className="w-4 h-4 opacity-50" />
-                Edit
+                {t("edit")}
               </DropdownMenuItem>
             )}
             {task.taskStatus !== "COMPLETE" && (
@@ -164,18 +166,18 @@ function TaskItem({ task, onDelete, onDone, onEdit, router }: any) {
                 onClick={() => onDone(task.id)}
               >
                 <Check className="w-4 h-4 opacity-50" />
-                Mark as done
+                {t("markDone")}
               </DropdownMenuItem>
             )}
             <DropdownMenuItem className="gap-2" onClick={() => onDelete(task)}>
               <TrashIcon className="w-4 h-4 opacity-50" />
-              Delete
+              {t("delete")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
       <div className="py-1">
-        Due date: {moment(task.dueDateAt).format("YYYY-MM-DD")}
+        {t("dueDate")}: {moment(task.dueDateAt).format("YYYY-MM-DD")}
       </div>
       <div className="my-2">
         <p
@@ -189,7 +191,7 @@ function TaskItem({ task, onDelete, onDone, onEdit, router }: any) {
               : `text-slate-600`
           }
         >
-          Priorita: {task.priority}
+          {t("priority")}: {t(`priorities.${task.priority ?? "normal"}`)}
         </p>
       </div>
       <HoverCard>
@@ -212,6 +214,7 @@ function DroppableColumn({ id, children }: { id: string; children: React.ReactNo
 }
 
 const Kanban = (props: any) => {
+  const t = useTranslations("ProjectsPage.kanban");
   const boardId = props.boardId;
   const boards = props.boards;
 
@@ -510,9 +513,9 @@ const Kanban = (props: any) => {
         >
           <DialogContent>
             <DialogHeader>
-              <DialogTitle className="p-2">Create new section</DialogTitle>
+              <DialogTitle className="p-2">{t("createSection")}</DialogTitle>
               <DialogDescription className="p-2">
-                Fill out the form below to create a new section to this project.
+                {t("createSectionDescription")}
               </DialogDescription>
             </DialogHeader>
             <NewSectionForm
@@ -528,9 +531,9 @@ const Kanban = (props: any) => {
         >
           <SheetContent className="max-w-3xl overflow-y-auto">
             <SheetHeader>
-              <SheetTitle>Update Task</SheetTitle>
+              <SheetTitle>{t("updateTask")}</SheetTitle>
               <SheetDescription>
-                Edit task details including title, description, due date, priority, and assignments
+                {t("updateTaskDescription")}
               </SheetDescription>
             </SheetHeader>
             <div className="mt-6 space-y-4">
@@ -545,7 +548,7 @@ const Kanban = (props: any) => {
         </Sheet>
 
         <div className="p-2 text-xs">
-          <p>{data?.length} Sections</p>
+          <p>{t("sections", { count: data?.length ?? 0 })}</p>
         </div>
 
         <DndContext

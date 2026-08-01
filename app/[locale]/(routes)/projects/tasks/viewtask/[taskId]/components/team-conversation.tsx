@@ -28,6 +28,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { addCommentToTask } from "@/actions/projects/add-comment-to-task";
+import { useTranslations } from "next-intl";
 
 const FormSchema = z.object({
   comment: z.string().min(3).max(160),
@@ -43,6 +44,7 @@ export function TeamConversations({
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const router = useRouter();
+  const t = useTranslations("ProjectsPage.conversation");
 
 
   const form = useForm<z.infer<typeof FormSchema>>({
@@ -56,10 +58,10 @@ export function TeamConversations({
       if (result?.error) {
         toast.error(result.error);
       } else {
-        toast.success("Success");
+        toast.success(t("success"));
       }
     } catch (error) {
-      toast.error("Something went wrong while sending comment to the DB");
+      toast.error(t("error"));
     } finally {
       form.reset({
         comment: "",
@@ -84,7 +86,7 @@ export function TeamConversations({
                 <FormControl>
                   <Input
                     disabled={isLoading}
-                    placeholder="Your comment ..."
+                    placeholder={t("placeholder")}
                     {...field}
                   />
                 </FormControl>
@@ -94,15 +96,15 @@ export function TeamConversations({
           />
 
           <Button className="w-[80px]" disabled={isLoading} type="submit">
-            {isLoading ? <Icons.spinner className="animate-spin" /> : "Add"}
+            {isLoading ? <Icons.spinner className="animate-spin" /> : t("add")}
           </Button>
         </form>
       </Form>
       <Card className="w-full">
         <CardHeader>
-          <CardTitle>Team conversation</CardTitle>
+          <CardTitle>{t("title")}</CardTitle>
           <CardDescription>
-            Invite your team members to collaborate.
+            {t("description")}
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-6">

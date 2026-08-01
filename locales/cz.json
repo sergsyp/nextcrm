@@ -14,7 +14,11 @@
       "contracts": "Smlouvy",
       "products": "Produkty",
       "targets": "Cílové osoby",
-      "targetLists": "Seznamy cílů"
+      "targetLists": "Seznamy cílů",
+      "dashboard": "Dashboard",
+      "myDashboard": "My Dashboard",
+      "overview": "Overview",
+      "approvals": "Approvals"
     },
     "projects": "Projekty",
     "emails": "Pošta",
@@ -23,7 +27,16 @@
     "documents": "Dokumenty",
     "invoices": "Faktury",
     "storage": "Úložiště",
-    "settings": "Nastavení"
+    "settings": "Nastavení",
+    "reportItems": {
+      "dashboard": "Dashboard",
+      "sales": "Sales",
+      "leads": "Leads",
+      "accounts": "Accounts",
+      "activity": "Activity",
+      "campaigns": "Campaigns",
+      "users": "Users"
+    }
   },
   "DashboardPage": {
     "containerTitle": "Přehled",
@@ -399,7 +412,10 @@
       "projectPlaceholder": "Vyberte projekt",
       "cancel": "Zrušit",
       "create": "Vytvořit",
-      "successMsg": "Úkol úspěšně vytvořen"
+      "successMsg": "Úkol úspěšně vytvořen",
+      "dueDatePlaceholder": "Pick a due date",
+      "sectionLabel": "Section",
+      "sectionPlaceholder": "Select a section"
     },
     "dataTable": {
       "filterPlaceholder": "Filtrovat projekty...",
@@ -422,7 +438,49 @@
       "editProject": "Upravit projekt",
       "editProjectDesc": "Upravit detaily projektu",
       "deleteError": "Chyba při mazání projektu",
-      "watchError": "Chyba při aktualizaci sledování"
+      "watchError": "Chyba při aktualizaci sledování",
+      "pageOf": "Page {page} of {total}"
+    },
+    "deleteProject": {
+      "trigger": "Delete project",
+      "title": "Delete project",
+      "description": "Are you sure you want to delete this project? It cannot be restored. All tasks will also be deleted.",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "deleting": "Deleting...",
+      "success": "Project {name} deleted successfully",
+      "error": "Could not delete the project. Please try again."
+    },
+    "conversation": {
+      "placeholder": "Your comment…",
+      "add": "Add",
+      "title": "Team conversation",
+      "description": "Discuss the task with your team.",
+      "success": "Comment added",
+      "error": "Could not add the comment"
+    },
+    "kanban": {
+      "untitled": "Untitled",
+      "overdue": "This task is overdue",
+      "done": "Task completed",
+      "view": "View",
+      "edit": "Edit",
+      "markDone": "Mark as done",
+      "delete": "Delete",
+      "dueDate": "Due date",
+      "priority": "Priority",
+      "priorities": {
+        "low": "Low",
+        "normal": "Normal",
+        "medium": "Medium",
+        "high": "High",
+        "critical": "Critical"
+      },
+      "createSection": "Create new section",
+      "createSectionDescription": "Add a new section to this project.",
+      "updateTask": "Update task",
+      "updateTaskDescription": "Edit the title, description, due date, priority, and assignee.",
+      "sections": "{count} sections"
     }
   },
   "DocumentsPage": {
@@ -718,6 +776,8 @@
     "settings": "Nastavení",
     "dashboard": "Přehled",
     "profileSettings": "Nastavení profilu",
-    "logout": "Odhlásit se"
+    "logout": "Odhlásit se",
+    "todoDashboard": "Todo Dashboard",
+    "salesDashboard": "Sales Dashboard"
   }
 }
