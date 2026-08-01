@@ -129,8 +129,11 @@ Writes (create/update/delete) require a manager or admin role; reads are open to
 - **crm_update_activity** — Update an existing CRM activity by ID
 - **crm_delete_activity** — Soft-delete a CRM activity by ID (sets deletedAt timestamp)
 
-### Documents (8 tools)
+### Documents (11 tools)
 
+- **crm_create_text_document** — Create a text or structured JSON document directly in the CRM knowledge base
+- **crm_search_documents** — Search accessible knowledge documents by text or stable key
+- **crm_update_text_document** — Update a text document with version checking, revision history, and audit metadata
 - **crm_list_documents** — List documents, optionally filtered by linked entity type and ID
 - **crm_get_document** — Get a single document by ID
 - **crm_create_document** — Create a document record and get a presigned upload URL

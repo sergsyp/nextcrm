@@ -108,6 +108,7 @@ services:
       # send. Without an email provider you can read the OTP from
       # the database directly.
       TEST_USER_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      AI_TEAM_OWNER_EMAIL: ${AI_TEAM_OWNER_EMAIL:-}
 
       # Placeholder values for optional external services.
       # The app initializes these clients at module load time, so empty

@@ -1007,6 +1007,7 @@ model Users {
   created_target_lists crm_TargetLists[]     @relation("created_target_lists")
   apiTokens            ApiToken[]
   emailAccounts        EmailAccount[]
+  emailAccountDelegations EmailAccountDelegate[]
   calendarConnections  CalendarConnection[]
   emails               Email[]
   enrichments_triggered          crm_Contact_Enrichment[]  @relation("enrichment_triggered_by")
@@ -1472,9 +1473,23 @@ model EmailAccount {
 
   user   Users   @relation(fields: [userId], references: [id], onDelete: Cascade)
   emails Email[]
+  delegates EmailAccountDelegate[]
 
   @@index([userId])
   @@index([isActive])
+}
+
+model EmailAccountDelegate {
+  id             String       @id @default(uuid()) @db.Uuid
+  emailAccountId String       @db.Uuid
+  userId         String       @db.Uuid
+  createdAt      DateTime     @default(now())
+
+  emailAccount EmailAccount @relation(fields: [emailAccountId], references: [id], onDelete: Cascade)
+  user         Users        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([emailAccountId, userId])
+  @@index([userId])
 }
 
 enum EmailFolder {

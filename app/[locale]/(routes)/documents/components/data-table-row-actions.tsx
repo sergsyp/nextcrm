@@ -20,12 +20,14 @@ import AlertModal from "@/components/modals/alert-modal";
 import { useState } from "react";
 import { toast } from "sonner";
 import { deleteDocument } from "@/actions/documents/delete-document";
+import { useTranslations } from "next-intl";
 
 interface DataTableRowActionsProps {
   row: Row<DocumentRow>;
 }
 
 export function DataTableRowActions({ row }: DataTableRowActionsProps) {
+  const t = useTranslations("DocumentsPage");
   const [openDelete, setOpenDelete] = useState(false);
   const [openView, setOpenView] = useState(false);
   const [openDetail, setOpenDetail] = useState(false);
@@ -39,9 +41,9 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
       setLoading(true);
       await deleteDocument(document.id);
       router.refresh();
-      toast.success("Document has been deleted");
+      toast.success(t("deleted"));
     } catch {
-      toast.error("Something went wrong while deleting document.");
+      toast.error(t("deleteError"));
     } finally {
       setLoading(false);
       setOpenDelete(false);
@@ -78,19 +80,19 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
             className="flex h-8 w-8 p-0 data-[state=open]:bg-muted"
           >
             <DotsHorizontalIcon className="h-4 w-4" />
-            <span className="sr-only">Open menu</span>
+            <span className="sr-only">{t("openMenu")}</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-[160px]">
           <DropdownMenuItem onClick={() => setOpenDetail(true)}>
-            Details
+            {t("details")}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setOpenView(true)}>
-            View File
+            {t("viewFile")}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => setOpenDelete(true)}>
-            Delete
+            {t("delete")}
             <DropdownMenuShortcut>⌘⌫</DropdownMenuShortcut>
           </DropdownMenuItem>
         </DropdownMenuContent>

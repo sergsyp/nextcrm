@@ -82,7 +82,7 @@ export function NavMain({ items, dict }: NavMainProps) {
 
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+      <SidebarGroupLabel>{dict?.navigation || "Navigation"}</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => {
           // Check if this is a collapsible group with sub-items

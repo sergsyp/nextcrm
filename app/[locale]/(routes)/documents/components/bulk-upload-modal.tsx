@@ -14,6 +14,7 @@ import {
 import { createDocument } from "@/actions/documents/create-document";
 import { checkDuplicate } from "@/actions/documents/check-duplicate";
 import { Plus } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 const ACCEPTED_TYPES: Record<string, string[]> = {
   "application/pdf": [".pdf"],
@@ -50,6 +51,7 @@ interface BulkUploadModalProps {
 }
 
 export function BulkUploadModal({ accountId }: BulkUploadModalProps) {
+  const t = useTranslations("DocumentsPage");
   const [open, setOpen] = useState(false);
   const [queue, setQueue] = useState<QueuedFile[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -175,12 +177,12 @@ export function BulkUploadModal({ accountId }: BulkUploadModalProps) {
       <DialogTrigger asChild>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
-          Upload Documents
+          {t("uploadDocuments")}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Upload Documents</DialogTitle>
+          <DialogTitle>{t("uploadDocuments")}</DialogTitle>
         </DialogHeader>
 
         <div
@@ -190,9 +192,9 @@ export function BulkUploadModal({ accountId }: BulkUploadModalProps) {
           }`}
         >
           <input {...getInputProps()} />
-          <p className="font-medium">Drop files here or click to browse</p>
+          <p className="font-medium">{t("dropFiles")}</p>
           <p className="text-sm text-muted-foreground mt-1">
-            PDF, DOCX, DOC, TXT, Images — up to 64MB each
+            {t("fileTypesHint")}
           </p>
         </div>
 
@@ -214,13 +216,13 @@ export function BulkUploadModal({ accountId }: BulkUploadModalProps) {
                       className="text-primary underline"
                       onClick={() => uploadAnyway(index)}
                     >
-                      Upload anyway
+                      {t("uploadAnyway")}
                     </button>
                     <button
                       className="text-muted-foreground underline"
                       onClick={() => skipFile(index)}
                     >
-                      Skip
+                      {t("skip")}
                     </button>
                   </span>
                 )}
@@ -230,13 +232,13 @@ export function BulkUploadModal({ accountId }: BulkUploadModalProps) {
                   </span>
                 )}
                 {item.status === "uploaded" && (
-                  <span className="text-xs text-green-600">Uploaded</span>
+                  <span className="text-xs text-green-600">{t("uploaded")}</span>
                 )}
                 {item.status === "error" && (
                   <span className="text-xs text-red-600">{item.error}</span>
                 )}
                 {item.status === "skipped" && (
-                  <span className="text-xs text-muted-foreground">Skipped</span>
+                  <span className="text-xs text-muted-foreground">{t("skipped")}</span>
                 )}
               </div>
             ))}
@@ -246,11 +248,11 @@ export function BulkUploadModal({ accountId }: BulkUploadModalProps) {
         {queue.length > 0 && (
           <div className="flex justify-between items-center mt-4">
             <span className="text-sm text-muted-foreground">
-              {uploadedCount}/{queue.length} uploaded
+              {t("uploadedCount", { uploaded: uploadedCount, total: queue.length })}
             </span>
             {hasQueued && (
               <Button onClick={processQueue} disabled={isProcessing}>
-                {isProcessing ? "Uploading..." : "Upload All"}
+                {isProcessing ? t("uploading") : t("uploadAll")}
               </Button>
             )}
           </div>

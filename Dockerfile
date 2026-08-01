@@ -93,6 +93,13 @@ ENV LD_LIBRARY_PATH="/usr/local/lib"
 # Copy Prisma schema + migrations for runtime migrate deploy
 COPY --from=build /app/prisma ./prisma
 
+# Copy the idempotent AI-team provisioning command and its small source
+# dependency set. The standalone Next.js output does not include CLI scripts.
+COPY --from=build /app/scripts/setup-ai-team.ts ./scripts/setup-ai-team.ts
+COPY --from=build /app/lib/ai-team ./lib/ai-team
+COPY --from=build /app/lib/prisma.ts ./lib/prisma.ts
+COPY --from=build /app/tsconfig.json ./tsconfig.json
+
 # Write a Docker-specific prisma.config.ts that does not import dotenv
 # (env vars are injected by docker-compose, not loaded from .env files).
 RUN printf '%s\n' \

@@ -30,6 +30,7 @@ import { DataTableToolbar } from "./data-table-toolbar";
 import { BatchActionsBar } from "./batch-actions-bar";
 import { DocumentRow } from "../data/schema";
 import { Table as TanstackTable } from "@tanstack/react-table";
+import { useTranslations } from "next-intl";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -42,6 +43,7 @@ export function DocumentsDataTable<TData, TValue>({
   data,
   accounts,
 }: DataTableProps<TData, TValue>) {
+  const t = useTranslations("DocumentsPage");
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
@@ -128,7 +130,7 @@ export function DocumentsDataTable<TData, TValue>({
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  No results.
+                  {t("noResults")}
                 </TableCell>
               </TableRow>
             )}

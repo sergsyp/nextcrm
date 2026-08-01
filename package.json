@@ -24,6 +24,7 @@
     "lint": "eslint . --max-warnings=0",
     "migrate:mongo-to-postgres": "pnpm exec tsx scripts/migrate-mongo-to-postgres.ts",
     "validate:migration": "pnpm exec tsx scripts/validate-migration.ts",
+    "ai-team:setup": "tsx scripts/setup-ai-team.ts",
     "test": "jest",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",

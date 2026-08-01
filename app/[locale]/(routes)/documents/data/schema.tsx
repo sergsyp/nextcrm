@@ -5,6 +5,7 @@ export const documentSchema = z.object({
   document_name: z.string(),
   document_file_url: z.string(),
   document_file_mimeType: z.string(),
+  content_text: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
   summary: z.string().nullable().optional(),
   thumbnail_url: z.string().nullable().optional(),

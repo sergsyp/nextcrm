@@ -10,6 +10,7 @@ import {
 } from "@/lib/email/imap-safety";
 import { assertPublicHost, HostNotAllowedError } from "@/lib/net/host-guard";
 import Imap from "imap";
+import { AI_AGENT_DEFINITIONS } from "@/lib/ai-team/definitions";
 
 async function requireSession() {
   const session = await getSession();
@@ -35,9 +36,59 @@ export async function getEmailAccounts() {
       sentFolderName: true,
       lastSyncedAt: true,
       createdAt: true,
+      delegates: {
+        select: { user: { select: { id: true, name: true, email: true } } },
+      },
     },
     orderBy: { createdAt: "asc" },
   });
+}
+
+export async function getEmailDelegateCandidates() {
+  await requireSession();
+  return prismadb.users.findMany({
+    where: {
+      email: { in: AI_AGENT_DEFINITIONS.map((agent) => agent.email) },
+      userStatus: "ACTIVE",
+    },
+    select: { id: true, name: true, email: true },
+    orderBy: { name: "asc" },
+  });
+}
+
+export async function setEmailAccountDelegates(
+  emailAccountId: string,
+  delegateUserIds: string[]
+) {
+  const ownerUserId = await requireSession();
+  const account = await prismadb.emailAccount.findFirst({
+    where: { id: emailAccountId, userId: ownerUserId },
+    select: { id: true },
+  });
+  if (!account) throw new Error("Not found");
+
+  const uniqueIds = Array.from(new Set(delegateUserIds));
+  const allowed = await prismadb.users.findMany({
+    where: {
+      id: { in: uniqueIds },
+      email: { in: AI_AGENT_DEFINITIONS.map((agent) => agent.email) },
+      userStatus: "ACTIVE",
+    },
+    select: { id: true },
+  });
+  if (allowed.length !== uniqueIds.length) {
+    throw new Error("Only active CRM AI agents can receive mailbox access");
+  }
+
+  await prismadb.$transaction(async (tx) => {
+    await tx.emailAccountDelegate.deleteMany({ where: { emailAccountId } });
+    if (uniqueIds.length) {
+      await tx.emailAccountDelegate.createMany({
+        data: uniqueIds.map((userId) => ({ emailAccountId, userId })),
+      });
+    }
+  });
+  return { ok: true };
 }
 
 type CreateInput = {

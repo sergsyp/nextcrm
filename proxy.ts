@@ -28,6 +28,11 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
+  // Published CRM landing pages are intentionally public.
+  if (path.startsWith("/l/")) {
+    return NextResponse.next();
+  }
+
   const sessionCookie = getSessionCookie(req);
 
   // Admin-only routes — require session cookie (role checked server-side)
