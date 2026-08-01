@@ -40,24 +40,31 @@ export const campaignSendStep = inngest.createFunction(
       : process.env.EMAIL_FROM;
 
     const result = await step.run("send-email", async () => {
-      const info = await sendEmail({
-        from: fromAddress,
-        to: sendRecord.email,
-        subject: resolveMergeTags(sendRecord.step.subject, sendRecord.target),
-        html,
-        ...(sendRecord.campaign.reply_to ? { replyTo: sendRecord.campaign.reply_to } : {}),
-        headers: {
-          "List-Unsubscribe": `<${process.env.NEXT_PUBLIC_APP_URL}/api/campaigns/unsubscribe?token=${sendRecord.unsubscribe_token}>`,
-        },
-      });
-      return { data: { id: info.messageId }, error: null };
+      try {
+        const info = await sendEmail({
+          from: fromAddress,
+          to: sendRecord.email,
+          subject: resolveMergeTags(sendRecord.step.subject, sendRecord.target),
+          html,
+          ...(sendRecord.campaign.reply_to ? { replyTo: sendRecord.campaign.reply_to } : {}),
+          headers: {
+            "List-Unsubscribe": `<${process.env.NEXT_PUBLIC_APP_URL}/api/campaigns/unsubscribe?token=${sendRecord.unsubscribe_token}>`,
+          },
+        });
+        return { data: { id: info.messageId }, error: null };
+      } catch (error) {
+        return {
+          data: null,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
     });
 
     await step.run("update-send-record", async () => {
       if (result.error) {
         return prismadb.crm_campaign_sends.update({
           where: { id: sendId },
-          data: { status: "failed", error_message: result.error?.message },
+          data: { status: "failed", error_message: result.error },
         });
       }
       return prismadb.crm_campaign_sends.update({
