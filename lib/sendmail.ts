@@ -3,15 +3,18 @@ import { readFileSync } from "node:fs";
 
 interface EmailOptions {
   from: string | undefined;
-  to: string;
+  to: string | string[];
   subject: string;
-  text: string;
+  text?: string;
   html?: string;
+  replyTo?: string;
+  headers?: Record<string, string>;
+  attachments?: Array<{ filename: string; content: string | Buffer }>;
 }
 
 export default async function sendEmail(
   emailOptions: EmailOptions
-): Promise<void> {
+): Promise<{ messageId?: string }> {
   const password = process.env.EMAIL_PASSWORD_FILE
     ? readFileSync(process.env.EMAIL_PASSWORD_FILE, "utf8").trim()
     : process.env.EMAIL_PASSWORD;
@@ -36,9 +39,9 @@ export default async function sendEmail(
   });
 
   try {
-    await transporter.sendMail(emailOptions);
+    const info = await transporter.sendMail(emailOptions);
     console.log(`Email sent to ${emailOptions.to}`);
-    return Promise.resolve(console.log(`Email sent to ${emailOptions.to}`));
+    return { messageId: info.messageId };
   } catch (error: any | Error) {
     console.error(`Error occurred while sending email: ${error.message}`);
     throw error;

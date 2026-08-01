@@ -1,6 +1,6 @@
 import { inngest } from "@/inngest/client";
 import { prismadb } from "@/lib/prisma";
-import { Resend } from "resend";
+import sendEmail from "@/lib/sendmail";
 import { generateCSV } from "@/actions/reports/export-csv";
 import { parseSearchParamsToFilters } from "@/actions/reports/types";
 import * as salesActions from "@/actions/reports/sales";
@@ -12,8 +12,6 @@ import * as usersActions from "@/actions/reports/users";
 import { getReportScope } from "@/lib/authz/scopes/report-scope";
 import type { ReportScope } from "@/lib/authz/scopes/report-scope";
 import { mapLegacyRole } from "@/lib/authz/roles";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function getReportData(category: string, filters: any, scope: ReportScope) {
   switch (category) {
@@ -94,8 +92,8 @@ export const reportSendScheduled = inngest.createFunction(
           attachments.push({ filename: `${schedule.reportConfig.category}-report.pdf`, content: pdfBuffer });
         }
 
-        await resend.emails.send({
-          from: process.env.RESEND_FROM_EMAIL!,
+        await sendEmail({
+          from: process.env.EMAIL_FROM,
           to: schedule.recipients as string[],
           subject: `Report: ${schedule.reportConfig.name}`,
           text: `Your scheduled report "${schedule.reportConfig.name}" is attached.`,
