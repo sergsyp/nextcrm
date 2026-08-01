@@ -15,6 +15,7 @@ import { NavItem } from "../nav-main"
 
 interface GetReportsMenuItemProps {
   title: string
+  localizations?: Record<string, string>
 }
 
 /**
@@ -24,18 +25,19 @@ interface GetReportsMenuItemProps {
  */
 export default function getReportsMenuItem({
   title,
+  localizations = {},
 }: GetReportsMenuItemProps): NavItem {
   return {
     title,
     icon: FileBarChart,
     items: [
-      { title: "Dashboard", url: "/reports", exact: true },
-      { title: "Sales", url: "/reports/sales" },
-      { title: "Leads", url: "/reports/leads" },
-      { title: "Accounts", url: "/reports/accounts" },
-      { title: "Activity", url: "/reports/activity" },
-      { title: "Campaigns", url: "/reports/campaigns" },
-      { title: "Users", url: "/reports/users" },
+      { title: localizations.dashboard ?? "Dashboard", url: "/reports", exact: true },
+      { title: localizations.sales ?? "Sales", url: "/reports/sales" },
+      { title: localizations.leads ?? "Leads", url: "/reports/leads" },
+      { title: localizations.accounts ?? "Accounts", url: "/reports/accounts" },
+      { title: localizations.activity ?? "Activity", url: "/reports/activity" },
+      { title: localizations.campaigns ?? "Campaigns", url: "/reports/campaigns" },
+      { title: localizations.users ?? "Users", url: "/reports/users" },
     ],
   }
 }

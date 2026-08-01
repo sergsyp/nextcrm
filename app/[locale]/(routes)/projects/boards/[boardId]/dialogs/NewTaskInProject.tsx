@@ -46,6 +46,7 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { createTaskInBoard } from "@/actions/projects/create-task-in-board";
+import { useTranslations } from "next-intl";
 
 type Props = {
   boardId: string;
@@ -57,6 +58,8 @@ const NewTaskInProjectDialog = ({ boardId, sections }: Props) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const router = useRouter();
+  const t = useTranslations("ProjectsPage.newTask");
+  const common = useTranslations("Common");
 
   const formSchema = z.object({
     title: z.string().min(3).max(255),
@@ -94,7 +97,7 @@ const NewTaskInProjectDialog = ({ boardId, sections }: Props) => {
       if (result?.error) {
         toast.error(result.error);
       } else {
-        toast.success(`New task: ${data.title}, created successfully`);
+        toast.success(t("successMsg"));
       }
     } catch (error: any) {
       toast.error(error?.message);
@@ -115,13 +118,13 @@ const NewTaskInProjectDialog = ({ boardId, sections }: Props) => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="px-2">Create new task</Button>
+        <Button className="px-2">{t("trigger")}</Button>
       </DialogTrigger>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create New Task</DialogTitle>
+          <DialogTitle>{t("title")}</DialogTitle>
           <DialogDescription>
-            Fill out the form below to create a new task.
+            {t("description")}
           </DialogDescription>
         </DialogHeader>
         {isLoading ? (
@@ -142,11 +145,11 @@ const NewTaskInProjectDialog = ({ boardId, sections }: Props) => {
                   name="title"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>New task name</FormLabel>
+                      <FormLabel>{t("nameLabel")}</FormLabel>
                       <FormControl>
                         <Input
                           disabled={isLoading}
-                          placeholder="Enter task name"
+                          placeholder={t("namePlaceholder")}
                           {...field}
                         />
                       </FormControl>
@@ -159,11 +162,11 @@ const NewTaskInProjectDialog = ({ boardId, sections }: Props) => {
                   name="content"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Task description</FormLabel>
+                      <FormLabel>{t("descLabel")}</FormLabel>
                       <FormControl>
                         <Textarea
                           disabled={isLoading}
-                          placeholder="Enter task description"
+                          placeholder={t("descPlaceholder")}
                           {...field}
                         />
                       </FormControl>
@@ -176,7 +179,7 @@ const NewTaskInProjectDialog = ({ boardId, sections }: Props) => {
                   name="dueDateAt"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel>Due date</FormLabel>
+                      <FormLabel>{t("dueDateLabel")}</FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
@@ -190,7 +193,7 @@ const NewTaskInProjectDialog = ({ boardId, sections }: Props) => {
                               {field.value ? (
                                 format(field.value, "PPP")
                               ) : (
-                                <span>Pick a expected close date</span>
+                                <span>{t("dueDatePlaceholder")}</span>
                               )}
                               <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                             </Button>
@@ -217,12 +220,12 @@ const NewTaskInProjectDialog = ({ boardId, sections }: Props) => {
                   name="user"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Assigned to</FormLabel>
+                      <FormLabel>{common("assignedTo")}</FormLabel>
                       <FormControl>
                         <UserSearchCombobox
                           value={field.value ?? ""}
                           onChange={field.onChange}
-                          placeholder="Select assigned user"
+                          placeholder={t("assignedToPlaceholder")}
                           disabled={isLoading}
                         />
                       </FormControl>
@@ -235,14 +238,14 @@ const NewTaskInProjectDialog = ({ boardId, sections }: Props) => {
                   name="section"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Choose section</FormLabel>
+                      <FormLabel>{t("sectionLabel")}</FormLabel>
                       <Select
                         onValueChange={field.onChange}
                         defaultValue={field.value}
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select tasks section" />
+                            <SelectValue placeholder={t("sectionPlaceholder")} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -262,21 +265,21 @@ const NewTaskInProjectDialog = ({ boardId, sections }: Props) => {
                   name="priority"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Choose task priority</FormLabel>
+                      <FormLabel>{common("priorityLabel")}</FormLabel>
                       <Select
                         onValueChange={field.onChange}
                         defaultValue={field.value}
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select tasks priority" />
+                            <SelectValue placeholder={common("priorityPlaceholder")} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="low">Low</SelectItem>
-                          <SelectItem value="medium">Medium</SelectItem>
-                          <SelectItem value="high">High</SelectItem>
-                          <SelectItem value="critical">Critical</SelectItem>
+                          <SelectItem value="low">{common("low")}</SelectItem>
+                          <SelectItem value="medium">{common("medium")}</SelectItem>
+                          <SelectItem value="high">{common("high")}</SelectItem>
+                          <SelectItem value="critical">{common("critical")}</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -290,9 +293,9 @@ const NewTaskInProjectDialog = ({ boardId, sections }: Props) => {
                   variant="outline"
                   onClick={() => setOpen(false)}
                 >
-                  Cancel
+                  {t("cancel")}
                 </Button>
-                <Button type="submit">Create</Button>
+                <Button type="submit">{t("create")}</Button>
               </DialogFooter>
             </form>
           </Form>

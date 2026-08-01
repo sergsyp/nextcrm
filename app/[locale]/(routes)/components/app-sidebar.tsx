@@ -103,7 +103,7 @@ export function AppSidebar({
     }),
     getProjectsMenuItem({ title: dict?.projects || "Projects" }),
     getEmailsMenuItem({ title: dict?.emails || "Emails" }),
-    getReportsMenuItem({ title: dict?.reports || "Reports" }),
+    getReportsMenuItem({ title: dict?.reports || "Reports", localizations: dict?.reportItems }),
     getDocumentsMenuItem({ title: dict?.documents || "Documents" }),
     getInvoicesMenuItem({ title: dict?.invoices || "Invoices" }),
   ];

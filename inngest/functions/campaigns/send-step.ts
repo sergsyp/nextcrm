@@ -1,10 +1,8 @@
 import { inngest } from "@/inngest/client";
 import { prismadb } from "@/lib/prisma";
-import { Resend } from "resend";
+import sendEmail from "@/lib/sendmail";
 import { resolveMergeTags } from "@/lib/campaigns/merge-tags";
 import { sendStepSkipReason } from "@/lib/campaigns/recipient-filters";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const campaignSendStep = inngest.createFunction(
   {
@@ -38,27 +36,35 @@ export const campaignSendStep = inngest.createFunction(
     const html = resolveMergeTags(sendRecord.step.template.content_html, sendRecord.target);
 
     const fromAddress = sendRecord.campaign.from_name
-      ? `${sendRecord.campaign.from_name} <${process.env.RESEND_FROM_EMAIL}>`
-      : process.env.RESEND_FROM_EMAIL!;
+      ? `${sendRecord.campaign.from_name} <${process.env.EMAIL_USERNAME}>`
+      : process.env.EMAIL_FROM;
 
     const result = await step.run("send-email", async () => {
-      return resend.emails.send({
-        from: fromAddress,
-        to: sendRecord.email,
-        subject: resolveMergeTags(sendRecord.step.subject, sendRecord.target),
-        html,
-        ...(sendRecord.campaign.reply_to ? { replyTo: sendRecord.campaign.reply_to } : {}),
-        headers: {
-          "List-Unsubscribe": `<${process.env.NEXTAUTH_URL}/api/campaigns/unsubscribe?token=${sendRecord.unsubscribe_token}>`,
-        },
-      });
+      try {
+        const info = await sendEmail({
+          from: fromAddress,
+          to: sendRecord.email,
+          subject: resolveMergeTags(sendRecord.step.subject, sendRecord.target),
+          html,
+          ...(sendRecord.campaign.reply_to ? { replyTo: sendRecord.campaign.reply_to } : {}),
+          headers: {
+            "List-Unsubscribe": `<${process.env.NEXT_PUBLIC_APP_URL}/api/campaigns/unsubscribe?token=${sendRecord.unsubscribe_token}>`,
+          },
+        });
+        return { data: { id: info.messageId }, error: null };
+      } catch (error) {
+        return {
+          data: null,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
     });
 
     await step.run("update-send-record", async () => {
       if (result.error) {
         return prismadb.crm_campaign_sends.update({
           where: { id: sendId },
-          data: { status: "failed", error_message: result.error?.message },
+          data: { status: "failed", error_message: result.error },
         });
       }
       return prismadb.crm_campaign_sends.update({
