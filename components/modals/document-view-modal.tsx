@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import ModalDocumentView from "../ui/modal-document-view";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 
 interface AlertModalProps {
@@ -26,22 +25,33 @@ const DocumentViewModal = ({
     typeof document.content_text === "string" &&
     document.content_text.trim().length > 0;
 
-  const downloadInternalDocument = () => {
-    const blob = new Blob([document.content_text || ""], {
-      type: document.document_file_mimeType || "text/markdown",
-    });
+  const downloadBlob = (blob: Blob) => {
     const url = URL.createObjectURL(blob);
     const anchor = window.document.createElement("a");
     const safeName = String(document.document_name || "document")
       .replace(/[<>:"/\\|?*]+/g, "-")
       .trim();
+    const extension = document.document_file_mimeType === "text/plain" ? ".txt" : ".md";
 
     anchor.href = url;
-    anchor.download = `${safeName || "document"}.md`;
+    anchor.download = `${safeName || "document"}${extension}`;
     window.document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
-    URL.revokeObjectURL(url);
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+
+  const downloadInternalDocument = () => {
+    downloadBlob(new Blob([document.content_text || ""], {
+      type: document.document_file_mimeType || "text/markdown",
+    }));
+  };
+
+  const downloadExternalDocument = async () => {
+    if (!document.document_file_url) return;
+    const response = await fetch(document.document_file_url);
+    if (!response.ok) throw new Error(`Download failed: ${response.status}`);
+    downloadBlob(await response.blob());
   };
 
   const imageTypes = [
@@ -137,8 +147,8 @@ const DocumentViewModal = ({
       <ModalDocumentView isOpen={isOpen} onClose={onClose}>
         <div className="flex flex-col h-full ">
           {t("previewUnavailable")}
-          <Button>
-            <Link href={document.document_file_url}>{t("download")}</Link>
+          <Button disabled={loading || !document.document_file_url} onClick={downloadExternalDocument}>
+            {t("download")}
           </Button>
           <div className="pt-6 space-x-2 flex items-center justify-end w-full ">
             <Button disabled={loading} variant={"outline"} onClick={onClose}>

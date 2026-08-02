@@ -7,6 +7,7 @@ export const taskSchema = z.object({
   document_name: z.string(),
   document_file_url: z.string(),
   document_file_mimeType: z.string(),
+  content_text: z.string().nullable().optional(),
   assigned_to_user: z.object({
     name: z.string().nullable(),
   }).nullable().optional(),
