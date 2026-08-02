@@ -42,6 +42,8 @@ export const getTask = async (taskId: string) => {
               id: true,
               document_name: true,
               document_file_url: true,
+              document_file_mimeType: true,
+              content_text: true,
             },
           },
         },
