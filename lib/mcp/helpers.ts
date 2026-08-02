@@ -34,12 +34,27 @@ export function isNotDeleted() {
 
 // ── Response Helpers ────────────────────────────────────────────
 
+export function jsonSafe<T>(value: T): T {
+  if (typeof value === "bigint") {
+    return (value <= BigInt(Number.MAX_SAFE_INTEGER) && value >= BigInt(Number.MIN_SAFE_INTEGER)
+      ? Number(value)
+      : value.toString()) as T;
+  }
+  if (Array.isArray(value)) return value.map((item) => jsonSafe(item)) as T;
+  if (value && typeof value === "object" && !(value instanceof Date)) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, jsonSafe(item)])
+    ) as T;
+  }
+  return value;
+}
+
 export function listResponse<T>(data: T[], total: number, offset: number) {
-  return { data, total, offset };
+  return { data: jsonSafe(data), total, offset };
 }
 
 export function itemResponse<T>(data: T) {
-  return { data };
+  return { data: jsonSafe(data) };
 }
 
 // ── Error Helpers ───────────────────────────────────────────────
