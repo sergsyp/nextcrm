@@ -21,8 +21,8 @@ export default function ModalDocumentView({
 
   return (
     <Dialog open={isOpen} onOpenChange={onChange}>
-      <DialogContent className="h-[calc(100dvh-2rem)] min-h-0 w-[calc(100vw-2rem)] overflow-hidden sm:h-4/5 sm:w-full">
-        <div className="h-full min-h-0 py-8 sm:py-10">{children}</div>
+      <DialogContent className="h-[calc(100dvh-1rem)] min-h-0 w-[calc(100vw-1rem)] max-w-[calc(100vw-1rem)] overflow-hidden p-4 sm:h-4/5 sm:w-full sm:max-w-5xl sm:p-6">
+        <div className="h-full min-h-0 min-w-0 py-8 sm:py-10">{children}</div>
       </DialogContent>
     </Dialog>
   );

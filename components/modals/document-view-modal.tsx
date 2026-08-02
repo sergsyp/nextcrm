@@ -73,8 +73,8 @@ const DocumentViewModal = ({
   if (hasTextContent || isInternalDocument) {
     return (
       <ModalDocumentView isOpen={isOpen} onClose={onClose}>
-        <div className="flex h-full min-h-0 flex-col">
-          <div className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain whitespace-pre-wrap rounded-md border bg-muted/20 p-5 text-sm leading-6 [-webkit-overflow-scrolling:touch]">
+        <div className="flex h-full min-h-0 min-w-0 flex-col">
+          <div className="min-h-0 min-w-0 max-w-full flex-1 touch-pan-y overflow-x-hidden overflow-y-auto overscroll-contain whitespace-pre-wrap break-words rounded-md border bg-muted/20 p-4 text-sm leading-6 [overflow-wrap:anywhere] [-webkit-overflow-scrolling:touch] sm:p-5">
             {document.content_text || t("emptyContent")}
           </div>
           <div className="flex w-full flex-col gap-2 pt-4 sm:flex-row sm:items-center sm:justify-end">
