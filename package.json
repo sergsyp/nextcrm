@@ -25,6 +25,7 @@
     "migrate:mongo-to-postgres": "pnpm exec tsx scripts/migrate-mongo-to-postgres.ts",
     "validate:migration": "pnpm exec tsx scripts/validate-migration.ts",
     "ai-team:setup": "tsx scripts/setup-ai-team.ts",
+    "email:backfill-bodies": "tsx scripts/backfill-email-bodies.ts",
     "test": "jest",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",

@@ -9,6 +9,7 @@ import { emailSyncAll } from "@/inngest/functions/emails/sync-all";
 import { emailSyncAccount } from "@/inngest/functions/emails/sync-account";
 import { embedEmail } from "@/inngest/functions/emails/embed-email";
 import { emailLinkCrm } from "@/inngest/functions/emails/link-crm";
+import { emailBodyIntegrity } from "@/inngest/functions/emails/body-integrity";
 import { enrichContact } from "@/inngest/functions/enrich-contact";
 import { enrichContactsBulk } from "@/inngest/functions/enrich-contacts-bulk";
 import { enrichTarget } from "@/inngest/functions/enrich-target";
@@ -48,6 +49,7 @@ export const { GET, POST, PUT } = serve({
     emailSyncAccount,
     embedEmail,
     emailLinkCrm,
+    emailBodyIntegrity,
     enrichContact,
     enrichContactsBulk,
     enrichTarget,

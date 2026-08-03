@@ -1512,11 +1512,19 @@ model Email {
   bccRecipients   Json        @default("[]")
   bodyText        String?
   bodyHtml        String?
+  bodyFetchStatus String      @default("PENDING")
+  bodyFetchAttempts Int       @default(0)
+  bodyFetchLastError String?
+  bodyFetchLastAttemptAt DateTime?
+  bodyFetchedAt   DateTime?
   sentAt          DateTime?
   isRead          Boolean     @default(false)
   isDeleted       Boolean     @default(false)
   updatedAt       DateTime    @updatedAt
   createdAt       DateTime    @default(now())
+  /// First-outbound idempotency scope. Replies leave both fields null.
+  approvalTaskId  String?     @db.Uuid
+  targetId        String?     @db.Uuid
 
   account   EmailAccount     @relation(fields: [emailAccountId], references: [id], onDelete: Cascade)
   user      Users            @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1530,6 +1538,8 @@ model Email {
   @@index([folder])
   @@index([isDeleted])
   @@index([sentAt])
+  @@index([bodyFetchStatus, createdAt])
+  @@unique([approvalTaskId, targetId])
   @@index([userId, folder, isDeleted, isRead])
 }
 

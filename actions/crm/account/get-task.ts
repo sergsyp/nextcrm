@@ -21,6 +21,7 @@ export const getCrMTask = async (taskId: string) => {
               document_name: true,
               document_file_url: true,
               document_file_mimeType: true,
+              content_text: true,
               assigned_to_user: {
                 select: {
                   name: true,

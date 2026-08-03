@@ -4,6 +4,9 @@ import { paginationSchema, paginationArgs, listResponse } from "../helpers";
 import { sendEmailForUser } from "@/lib/email/send-message";
 import { hasFirstMessageApproval } from "@/lib/email/agent-approval";
 import { emailAccountAccessWhere } from "@/lib/email/account-access";
+import type { AuthzUser } from "@/lib/authz";
+import { targetReadScopeWhere } from "@/lib/authz/scopes/crm";
+import { getOrFetchEmailBody } from "@/lib/email/get-or-fetch-body";
 
 export const crmEmailAccountTools = [
   {
@@ -91,6 +94,10 @@ export const crmEmailAccountTools = [
         },
       });
       if (!email) throw new Error("NOT_FOUND");
+      if (!email.bodyText && !email.bodyHtml && email.imapUid) {
+        const body = await getOrFetchEmailBody(email.id);
+        return { data: { ...email, ...body, bodyFetchStatus: body.status } };
+      }
       return { data: email };
     },
   },
@@ -106,6 +113,7 @@ export const crmEmailAccountTools = [
       body: z.string().min(1).max(50_000),
       replyToEmailId: z.string().uuid().optional(),
       approvalTaskId: z.string().uuid().optional(),
+      targetId: z.string().uuid().optional(),
     }),
     async handler(
       args: {
@@ -116,8 +124,10 @@ export const crmEmailAccountTools = [
         body: string;
         replyToEmailId?: string;
         approvalTaskId?: string;
+        targetId?: string;
       },
-      userId: string
+      userId: string,
+      user: AuthzUser
     ) {
       let inReplyTo: string | undefined;
       if (args.replyToEmailId) {
@@ -132,7 +142,9 @@ export const crmEmailAccountTools = [
         if (!parent) throw new Error("NOT_FOUND");
         inReplyTo = parent.rfcMessageId;
       } else {
-        if (!args.approvalTaskId) throw new Error("APPROVAL_REQUIRED");
+        if (!args.approvalTaskId || !args.targetId) {
+          throw new Error("APPROVAL_AND_TARGET_REQUIRED");
+        }
         const approval = await prismadb.tasks.findFirst({
           where: { id: args.approvalTaskId, user: userId },
           select: {
@@ -146,6 +158,27 @@ export const crmEmailAccountTools = [
         if (!approval || !hasFirstMessageApproval(approval.comments)) {
           throw new Error("APPROVAL_REQUIRED");
         }
+
+        const target = await prismadb.crm_Targets.findFirst({
+          where: { id: args.targetId, ...targetReadScopeWhere(user) },
+          select: { id: true, email: true },
+        });
+        if (!target?.email) throw new Error("TARGET_EMAIL_NOT_FOUND");
+        const expected = target.email.trim().toLowerCase();
+        const recipients = args.to.map((email) => email.trim().toLowerCase());
+        if (recipients.length !== 1 || recipients[0] !== expected) {
+          throw new Error("TARGET_EMAIL_MISMATCH");
+        }
+
+        const existing = await prismadb.email.findFirst({
+          where: {
+            approvalTaskId: args.approvalTaskId,
+            targetId: args.targetId,
+            folder: "SENT",
+            isDeleted: false,
+          },
+        });
+        if (existing) return { data: existing, deduplicated: true };
       }
       const email = await sendEmailForUser(userId, {
         accountId: args.accountId,
@@ -155,6 +188,8 @@ export const crmEmailAccountTools = [
         body: args.body,
         inReplyTo,
         references: inReplyTo,
+        approvalTaskId: args.replyToEmailId ? undefined : args.approvalTaskId,
+        targetId: args.replyToEmailId ? undefined : args.targetId,
       });
       return { data: email };
     },

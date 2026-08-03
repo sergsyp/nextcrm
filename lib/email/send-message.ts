@@ -15,6 +15,8 @@ export type SendEmailInput = {
   body: string;
   inReplyTo?: string;
   references?: string;
+  approvalTaskId?: string;
+  targetId?: string;
 };
 
 export async function sendEmailForUser(userId: string, input: SendEmailInput) {
@@ -66,6 +68,8 @@ export async function sendEmailForUser(userId: string, input: SendEmailInput) {
       bodyText: input.body,
       sentAt: new Date(),
       isRead: true,
+      approvalTaskId: input.approvalTaskId,
+      targetId: input.targetId,
     },
   });
 }

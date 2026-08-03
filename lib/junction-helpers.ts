@@ -484,6 +484,7 @@ export const junctionTableHelpers = {
               document_type: true,
               document_file_url: true,
               document_file_mimeType: true,
+              content_text: true,
               createdAt: true,
               created_by_user: {
                 select: {
