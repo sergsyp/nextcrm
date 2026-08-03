@@ -1,7 +1,6 @@
 import { inngest } from "@/inngest/client";
 import { prismadb } from "@/lib/prisma";
-import { decrypt } from "@/lib/email-crypto";
-import { fetchBodyByUid } from "@/inngest/lib/imap-utils";
+import { getOrFetchEmailBody } from "@/lib/email/get-or-fetch-body";
 
 export const emailLinkCrm = inngest.createFunction(
   {
@@ -34,10 +33,9 @@ export const emailLinkCrm = inngest.createFunction(
       .filter((e): e is string => typeof e === "string" && e.length > 0)
       .map((e) => e.toLowerCase());
 
-    if (addresses.length === 0) return { linked: 0 };
-
     const linked = await step.run("match-and-link", async () => {
-      const [contacts, accounts] = await Promise.all([
+      if (addresses.length === 0) return 0;
+      const [contacts, accounts, targets] = await Promise.all([
         prismadb.crm_Contacts.findMany({
           where: { email: { in: addresses } },
           select: { id: true },
@@ -45,6 +43,18 @@ export const emailLinkCrm = inngest.createFunction(
         prismadb.crm_Accounts.findMany({
           where: { email: { in: addresses } },
           select: { id: true },
+        }),
+        prismadb.crm_Targets.findMany({
+          where: {
+            deletedAt: null,
+            OR: [
+              { email: { in: addresses, mode: "insensitive" } },
+              { personal_email: { in: addresses, mode: "insensitive" } },
+              { company_email: { in: addresses, mode: "insensitive" } },
+            ],
+          },
+          select: { id: true },
+          take: 2,
         }),
       ]);
 
@@ -58,65 +68,24 @@ export const emailLinkCrm = inngest.createFunction(
         await prismadb.emailsToAccounts.createMany({ data: accountLinks, skipDuplicates: true });
       }
 
-      return contactLinks.length + accountLinks.length;
+      // Email.targetId is deliberately set only for one unambiguous exact match.
+      if (targets.length === 1) {
+        await prismadb.email.update({ where: { id: emailId }, data: { targetId: targets[0].id } });
+      } else if (targets.length > 1) {
+        console.warn(`[link-crm] Multiple Target matches for email ${emailId}; targetId left unset`);
+      }
+
+      return contactLinks.length + accountLinks.length + (targets.length === 1 ? 1 : 0);
     });
 
-    // Only fetch body + embed for emails that are CRM-relevant
-    if (linked > 0 && email.imapUid) {
-      const emailAccount = await prismadb.emailAccount.findUnique({
-        where: { id: email.emailAccountId },
-        select: {
-          username: true,
-          passwordEncrypted: true,
-          imapHost: true,
-          imapPort: true,
-          imapSsl: true,
-          sentFolderName: true,
-        },
-      });
-
-      if (emailAccount) {
-        const folderName =
-          email.folder === "SENT"
-            ? (emailAccount.sentFolderName || "Sent")
-            : "INBOX";
-
-        // Wrap body fetch in step.run for idempotent retry behaviour
-        await step.run("fetch-and-save-body", async () => {
-          try {
-            const body = await fetchBodyByUid(
-              {
-                username: emailAccount.username,
-                password: decrypt(emailAccount.passwordEncrypted),
-                imapHost: emailAccount.imapHost,
-                imapPort: emailAccount.imapPort,
-                imapSsl: emailAccount.imapSsl,
-              },
-              folderName,
-              email.imapUid!
-            );
-
-            await prismadb.email.update({
-              where: { id: emailId },
-              data: {
-                bodyText: body.bodyText ?? null,
-                bodyHtml: body.bodyHtml ?? null,
-              },
-            });
-          } catch (e) {
-            console.warn(`[link-crm] Body fetch failed for email ${emailId}:`, e);
-            // embed will still fire with subject-only text
-          }
-        });
-
+    // Body preservation is independent of CRM matching. Every synced IMAP message gets a body.
+    if (email.imapUid) {
+      await step.run("fetch-and-save-body", async () => getOrFetchEmailBody(emailId));
+      if (linked > 0) {
         await step.sendEvent("trigger-embed", {
           name: "email/embed-email",
           data: { emailId },
         });
-      } else {
-        console.warn(
-          `[link-crm] EmailAccount ${email.emailAccountId} not found for email ${emailId} — skipping body fetch`
-        );
       }
     }
 
