@@ -1,6 +1,7 @@
 import { inngest } from "@/inngest/client";
 import { runAgentTask } from "@/lib/ai-team/executor";
 import type { AiAgentKey } from "@/lib/ai-team/types";
+import { ensureDailyAutonomousQueue, recoverRateLimitedTasks } from "@/lib/ai-team/autonomy";
 
 const agents: AiAgentKey[] = ["researcher", "sales", "controller"];
 
@@ -13,13 +14,15 @@ export const aiTeamScheduledRun = inngest.createFunction(
     triggers: [{ cron: process.env.AI_TEAM_CRON ?? "*/15 * * * *" }],
   },
   async ({ step }) => {
+    const queue = await step.run("ensure-autonomous-queue", () => ensureDailyAutonomousQueue());
+    const recovery = await step.run("recover-rate-limited-tasks", () => recoverRateLimitedTasks());
     const results = [];
     for (const agent of agents) {
       results.push(
         await step.run(`run-${agent}`, () => runAgentTask(agent))
       );
     }
-    return { results };
+    return { queue, recovery, results };
   }
 );
 

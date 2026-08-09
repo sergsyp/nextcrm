@@ -68,6 +68,7 @@ const TOOL_KEYWORDS: Array<{ pattern: RegExp; prefixes: string[] }> = [
   { pattern: /клиент|компан|контакт|account|contact/i, prefixes: ["crm_list_accounts", "crm_get_account", "crm_search_accounts", "crm_create_account", "crm_update_account", "crm_list_contacts", "crm_get_contact", "crm_search_contacts", "crm_create_contact", "crm_update_contact"] },
   { pattern: /лид|сделк|продаж|lead|opportunit/i, prefixes: ["crm_list_leads", "crm_get_lead", "crm_search_leads", "crm_create_lead", "crm_update_lead", "crm_list_opportunities", "crm_get_opportunity", "crm_search_opportunities", "crm_create_opportunity", "crm_update_opportunity"] },
   { pattern: /целе|target|обогащ|enrich/i, prefixes: ["crm_list_targets", "crm_get_target", "crm_search_targets", "crm_create_target", "crm_update_target", "crm_list_target_lists", "crm_get_target_list", "crm_create_target_list", "crm_update_target_list", "crm_add_to_target_list", "crm_enrich"] },
+  { pattern: /поиск|источник|сайт|кандидат|компан|web|search/i, prefixes: ["crm_web_search"] },
   { pattern: /почт|письм|email|переписк/i, prefixes: ["crm_list_email_accounts", "crm_list_emails", "crm_get_email", "crm_send_individual_email"] },
   { pattern: /кампан|рассыл|campaign/i, prefixes: ["campaigns_"] },
   { pattern: /продукт|товар|услуг|тариф|product/i, prefixes: ["crm_list_products", "crm_get_product", "crm_create_product", "crm_update_product"] },
