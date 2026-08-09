@@ -11,6 +11,7 @@ export { crmDocumentTools } from "./crm-documents";
 export { crmTargetListTools } from "./crm-target-lists";
 export { crmEnrichmentTools } from "./crm-enrichment";
 export { crmEmailAccountTools } from "./crm-email-accounts";
+export { crmWebSearchTools } from "./crm-web-search";
 export { campaignTools } from "./campaigns";
 export { projectTools } from "./projects";
 export { reportTools } from "./reports";
@@ -28,6 +29,7 @@ import { crmDocumentTools } from "./crm-documents";
 import { crmTargetListTools } from "./crm-target-lists";
 import { crmEnrichmentTools } from "./crm-enrichment";
 import { crmEmailAccountTools } from "./crm-email-accounts";
+import { crmWebSearchTools } from "./crm-web-search";
 import { campaignTools } from "./campaigns";
 import { projectTools } from "./projects";
 import { reportTools } from "./reports";
@@ -46,6 +48,7 @@ export const allTools = [
   ...crmTargetListTools,
   ...crmEnrichmentTools,
   ...crmEmailAccountTools,
+  ...crmWebSearchTools,
   ...campaignTools,
   ...projectTools,
   ...reportTools,

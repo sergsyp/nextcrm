@@ -162,6 +162,7 @@ export async function runAgentTask(key: AiAgentKey, taskId?: string) {
   try {
     let finalText = "";
     let turns = 0;
+    let reachedFinalAnswer = false;
     while (turns < definition.maxToolTurns) {
       turns += 1;
       const response = await withRateLimitBackoff(() =>
@@ -183,6 +184,7 @@ export async function runAgentTask(key: AiAgentKey, taskId?: string) {
       messages.push(message);
       if (!message.tool_calls?.length) {
         finalText = message.content ?? "";
+        reachedFinalAnswer = true;
         break;
       }
       for (const call of message.tool_calls) {
@@ -202,6 +204,10 @@ export async function runAgentTask(key: AiAgentKey, taskId?: string) {
           content: JSON.stringify(toSerializable(result)),
         });
       }
+    }
+
+    if (!reachedFinalAnswer) {
+      throw new Error("AGENT_TURN_LIMIT_REACHED_WITHOUT_FINAL_RESULT");
     }
 
     await markRun(task.id, agentUser.id, "completed", {
