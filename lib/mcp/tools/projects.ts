@@ -255,15 +255,23 @@ export const projectTools = [
       section: z.string().uuid(),
       priority: z.string().default("Normal"),
       dueDateAt: z.string().datetime().optional(),
+      assignedTo: z.string().uuid().optional(),
     }),
     async handler(
-      args: { title: string; content?: string; section: string; priority: string; dueDateAt?: string },
+      args: { title: string; content?: string; section: string; priority: string; dueDateAt?: string; assignedTo?: string },
       _userId: string,
       user: AuthzUser
     ) {
       const sec = await prismadb.sections.findUnique({ where: { id: args.section } });
       if (!sec) notFound("Section");
       await assertScopeOrNotFound(() => assertCanWriteBoard(user, sec.board), "Board");
+      if (args.assignedTo) {
+        const assignee = await prismadb.users.findFirst({
+          where: { id: args.assignedTo, userStatus: "ACTIVE" },
+          select: { id: true },
+        });
+        if (!assignee) notFound("Assignee");
+      }
       const maxPos = await prismadb.tasks.aggregate({
         where: { section: args.section },
         _max: { position: true },
@@ -276,7 +284,7 @@ export const projectTools = [
           section: args.section,
           priority: args.priority,
           position: (maxPos._max.position ?? BigInt(0)) + BigInt(1000),
-          user: user.id,
+          user: args.assignedTo ?? user.id,
           createdBy: user.id,
           updatedBy: user.id,
           ...(args.dueDateAt && { dueDateAt: new Date(args.dueDateAt) }),

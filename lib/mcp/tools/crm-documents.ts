@@ -404,8 +404,19 @@ export const crmDocumentTools = [
     description: "Get a single document by ID",
     schema: z.object({ id: z.string().uuid() }),
     async handler(args: { id: string }, userId: string) {
+      const user = await prismadb.users.findUnique({
+        where: { id: userId },
+        select: { role: true },
+      });
+      if (!user) notFound("User");
       const doc = await prismadb.documents.findFirst({
-        where: { id: args.id, created_by_user: userId, deletedAt: null },
+        where: {
+          id: args.id,
+          deletedAt: null,
+          ...(user.role === "admin"
+            ? {}
+            : { OR: [{ created_by_user: userId }, { assigned_user: userId }] }),
+        },
         include: {
           accounts: true,
           contacts: true,
