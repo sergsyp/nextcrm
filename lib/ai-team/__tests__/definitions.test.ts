@@ -42,6 +42,8 @@ describe("AI team configuration", () => {
     expect(content).toContain("самостоятельно продолжает ту же переписку");
     expect(content).toContain("типовой доской Projects/Boards");
     expect(content).toContain("crm_send_individual_email");
+    expect(content).toContain("Target ID");
+    expect(content).toContain("без повторного SMTP");
     expect(content).toContain("crm_publish_landing");
     expect(content).toContain("Встроенного визуального");
   });
