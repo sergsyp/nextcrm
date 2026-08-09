@@ -13,6 +13,7 @@ import {
   selectAllowedTools,
   selectToolsForTask,
   toSerializable,
+  withRateLimitBackoff,
 } from "./executor-utils";
 
 type McpTool = (typeof allTools)[number];
@@ -130,7 +131,8 @@ export async function runAgentTask(key: AiAgentKey, taskId?: string) {
   const allowedTools = selectAllowedTools(allTools, definition.toolNames);
   const tools = selectToolsForTask(
     allowedTools,
-    `${task.title}\n${task.content ?? ""}\n${task.assigned_section?.board_relation?.description ?? ""}`
+    `${task.title}\n${task.content ?? ""}\n${task.assigned_section?.board_relation?.description ?? ""}`,
+    parseTags(task.tags).kind
   );
   const authzUser = { id: agentUser.id, role: mapLegacyRole(agentUser.role) };
   const client = createOpenAIClient(process.env.OPENAI_API_KEY ?? "");
@@ -162,16 +164,20 @@ export async function runAgentTask(key: AiAgentKey, taskId?: string) {
     let turns = 0;
     while (turns < definition.maxToolTurns) {
       turns += 1;
-      const response = await client.chat.completions.create({
-        model: process.env.AI_TEAM_MODEL ?? AI_CHAT_MODEL,
-        messages,
-        tools: openAiTools,
-        tool_choice: "auto",
-        temperature: 0.2,
-        max_completion_tokens: 2000,
-      }, {
-        timeout: Number(process.env.AI_TEAM_LLM_TIMEOUT_MS ?? 120_000),
-      });
+      const response = await withRateLimitBackoff(() =>
+        client.chat.completions.create({
+          model: process.env.AI_TEAM_MODEL ?? AI_CHAT_MODEL,
+          messages,
+          tools: openAiTools,
+          tool_choice: "auto",
+          temperature: 0.2,
+          max_completion_tokens: Number(
+            process.env.AI_TEAM_MAX_COMPLETION_TOKENS ?? 8000,
+          ),
+        }, {
+          timeout: Number(process.env.AI_TEAM_LLM_TIMEOUT_MS ?? 120_000),
+        })
+      );
       const message = response.choices[0]?.message;
       if (!message) throw new Error("AI provider returned no message");
       messages.push(message);

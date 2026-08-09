@@ -1,5 +1,10 @@
 import { z } from "zod";
 import { prismadb } from "@/lib/prisma";
+import type { AuthzUser } from "@/lib/authz";
+import {
+  assertCanWriteTarget,
+  targetReadScopeWhere,
+} from "@/lib/authz/scopes/crm";
 import {
   paginationSchema,
   paginationArgs,
@@ -8,15 +13,29 @@ import {
   ilike,
   notFound,
   softDeleteData,
+  assertScopeOrNotFound,
 } from "../helpers";
+
+async function assertWritableTarget(user: AuthzUser, targetId: string) {
+  const row = await prismadb.crm_Targets.findFirst({
+    where: { id: targetId, deletedAt: null },
+    select: { id: true },
+  });
+  if (!row) notFound("Target");
+  await assertScopeOrNotFound(() => assertCanWriteTarget(user, targetId), "Target");
+}
 
 export const crmTargetTools = [
   {
     name: "crm_list_targets",
-    description: "List CRM targets created by the authenticated user",
+    description: "List CRM targets visible to the authenticated user",
     schema: z.object({ ...paginationSchema }),
-    async handler(args: { limit: number; offset: number }, userId: string) {
-      const where = { created_by: userId, deletedAt: null };
+    async handler(
+      args: { limit: number; offset: number },
+      _userId: string,
+      user: AuthzUser
+    ) {
+      const where = targetReadScopeWhere(user);
       const [data, total] = await Promise.all([
         prismadb.crm_Targets.findMany({
           where,
@@ -32,9 +51,9 @@ export const crmTargetTools = [
     name: "crm_get_target",
     description: "Get a single CRM target by ID",
     schema: z.object({ id: z.string().uuid() }),
-    async handler(args: { id: string }, userId: string) {
+    async handler(args: { id: string }, _userId: string, user: AuthzUser) {
       const target = await prismadb.crm_Targets.findFirst({
-        where: { id: args.id, created_by: userId, deletedAt: null },
+        where: { id: args.id, ...targetReadScopeWhere(user) },
       });
       if (!target) notFound("Target");
       return itemResponse(target);
@@ -46,16 +65,20 @@ export const crmTargetTools = [
     schema: z.object({ query: z.string().min(1), ...paginationSchema }),
     async handler(
       args: { query: string; limit: number; offset: number },
-      userId: string
+      _userId: string,
+      user: AuthzUser
     ) {
       const where = {
-        created_by: userId,
-        deletedAt: null,
-        OR: [
-          ilike("first_name", args.query),
-          ilike("last_name", args.query),
-          ilike("email", args.query),
-          ilike("company", args.query),
+        ...targetReadScopeWhere(user),
+        AND: [
+          {
+            OR: [
+              ilike("first_name", args.query),
+              ilike("last_name", args.query),
+              ilike("email", args.query),
+              ilike("company", args.query),
+            ],
+          },
         ],
       };
       const [data, total] = await Promise.all([
@@ -124,12 +147,10 @@ export const crmTargetTools = [
         company?: string;
         position?: string;
       },
-      userId: string
+      userId: string,
+      user: AuthzUser
     ) {
-      const existing = await prismadb.crm_Targets.findFirst({
-        where: { id: args.id, created_by: userId, deletedAt: null },
-      });
-      if (!existing) notFound("Target");
+      await assertWritableTarget(user, args.id);
       const { id, ...updateData } = args;
       const target = await prismadb.crm_Targets.update({
         where: { id },
@@ -142,11 +163,8 @@ export const crmTargetTools = [
     name: "crm_delete_target",
     description: "Soft-delete a CRM target by ID (sets deletedAt timestamp)",
     schema: z.object({ id: z.string().uuid() }),
-    async handler(args: { id: string }, userId: string) {
-      const existing = await prismadb.crm_Targets.findFirst({
-        where: { id: args.id, created_by: userId, deletedAt: null },
-      });
-      if (!existing) notFound("Target");
+    async handler(args: { id: string }, userId: string, user: AuthzUser) {
+      await assertWritableTarget(user, args.id);
       const target = await prismadb.crm_Targets.update({
         where: { id: args.id },
         data: softDeleteData(userId),

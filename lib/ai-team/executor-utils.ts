@@ -77,8 +77,19 @@ const TOOL_KEYWORDS: Array<{ pattern: RegExp; prefixes: string[] }> = [
 
 export function selectToolsForTask<T extends { name: string }>(
   allowedTools: readonly T[],
-  taskText: string
+  taskText: string,
+  taskKind?: unknown
 ): T[] {
+  if (taskKind === "single-target-recovery") {
+    const recoveryTools = new Set([
+      "projects_get_task",
+      "projects_add_comment",
+      "crm_get_target",
+      "crm_list_email_accounts",
+      "crm_send_individual_email",
+    ]);
+    return allowedTools.filter((tool) => recoveryTools.has(tool.name));
+  }
   const selected = new Set(CORE_TOOL_NAMES);
   for (const category of TOOL_KEYWORDS) {
     if (!category.pattern.test(taskText)) continue;
@@ -89,4 +100,38 @@ export function selectToolsForTask<T extends { name: string }>(
     }
   }
   return allowedTools.filter((tool) => selected.has(tool.name));
+}
+
+const RATE_LIMIT_BACKOFF_MS = [5_000, 10_000, 20_000] as const;
+
+export function isRateLimitError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const candidate = error as {
+    status?: unknown;
+    statusCode?: unknown;
+    code?: unknown;
+    response?: { status?: unknown };
+  };
+  return (
+    candidate.status === 429 ||
+    candidate.statusCode === 429 ||
+    candidate.response?.status === 429 ||
+    candidate.code === "rate_limit_exceeded"
+  );
+}
+
+export async function withRateLimitBackoff<T>(
+  operation: () => Promise<T>,
+  sleep: (delayMs: number) => Promise<void> = (delayMs) =>
+    new Promise((resolve) => setTimeout(resolve, delayMs)),
+): Promise<T> {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      const delayMs = RATE_LIMIT_BACKOFF_MS[attempt];
+      if (!isRateLimitError(error) || delayMs === undefined) throw error;
+      await sleep(delayMs);
+    }
+  }
 }

@@ -4,6 +4,7 @@ import {
   selectAllowedTools,
   selectToolsForTask,
   toSerializable,
+  withRateLimitBackoff,
 } from "../executor-utils";
 
 describe("AI team executor", () => {
@@ -75,5 +76,64 @@ describe("AI team executor", () => {
     expect(
       selectToolsForTask(tools, "Подготовь письмо клиенту").map((tool) => tool.name)
     ).toContain("crm_send_individual_email");
+  });
+});
+
+describe("AI provider rate-limit recovery", () => {
+  test("retries HTTP 429 with 5/10/20 second backoff", async () => {
+    const operation = jest
+      .fn()
+      .mockRejectedValueOnce({ status: 429 })
+      .mockRejectedValueOnce({ statusCode: 429 })
+      .mockRejectedValueOnce({ response: { status: 429 } })
+      .mockResolvedValue("ok");
+    const sleep = jest.fn().mockResolvedValue(undefined);
+
+    await expect(withRateLimitBackoff(operation, sleep)).resolves.toBe("ok");
+    expect(operation).toHaveBeenCalledTimes(4);
+    expect(sleep.mock.calls).toEqual([[5_000], [10_000], [20_000]]);
+  });
+
+  test("does not retry non-rate-limit failures", async () => {
+    const failure = Object.assign(new Error("provider unavailable"), { status: 503 });
+    const operation = jest.fn().mockRejectedValue(failure);
+    const sleep = jest.fn();
+
+    await expect(withRateLimitBackoff(operation, sleep)).rejects.toBe(failure);
+    expect(operation).toHaveBeenCalledTimes(1);
+    expect(sleep).not.toHaveBeenCalled();
+  });
+
+  test("stops after three rate-limit retries", async () => {
+    const failure = Object.assign(new Error("rate limited"), { code: "rate_limit_exceeded" });
+    const operation = jest.fn().mockRejectedValue(failure);
+    const sleep = jest.fn().mockResolvedValue(undefined);
+
+    await expect(withRateLimitBackoff(operation, sleep)).rejects.toBe(failure);
+    expect(operation).toHaveBeenCalledTimes(4);
+    expect(sleep.mock.calls).toEqual([[5_000], [10_000], [20_000]]);
+  });
+});
+
+describe("single-target recovery tool selection", () => {
+  it("exposes only the deterministic recovery path", () => {
+    const tools = [
+      { name: "projects_get_task" },
+      { name: "projects_add_comment" },
+      { name: "crm_get_target" },
+      { name: "crm_list_email_accounts" },
+      { name: "crm_send_individual_email" },
+      { name: "crm_get_account" },
+      { name: "crm_get_lead" },
+      { name: "crm_get_target_list" },
+    ];
+    expect(selectToolsForTask(tools, "ignored", "single-target-recovery").map((tool) => tool.name))
+      .toEqual([
+        "projects_get_task",
+        "projects_add_comment",
+        "crm_get_target",
+        "crm_list_email_accounts",
+        "crm_send_individual_email",
+      ]);
   });
 });
