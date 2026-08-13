@@ -250,7 +250,7 @@ export async function runAgentTask(key: AiAgentKey, taskId?: string) {
           const requestedTags = Array.isArray(args.tags)
             ? args.tags.filter((value): value is string => typeof value === "string")
             : [];
-          args = { ...args, tags: [...new Set([...requestedTags, ...requiredTags])] };
+          args = { ...args, tags: Array.from(new Set([...requestedTags, ...requiredTags])) };
         }
         await markRun(task.id, agentUser.id, "running", {
           aiLastTool: tool.name,
