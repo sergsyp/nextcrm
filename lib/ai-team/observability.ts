@@ -66,8 +66,10 @@ export async function recordAiUsage(input: {
   businessResult?: string;
   fallbackUsed?: boolean;
 }) {
-  const inputRate = Number(process.env.AI_INPUT_USD_PER_MILLION_TOKENS ?? "");
-  const outputRate = Number(process.env.AI_OUTPUT_USD_PER_MILLION_TOKENS ?? "");
+  const inputRateRaw = process.env.AI_INPUT_USD_PER_MILLION_TOKENS;
+  const outputRateRaw = process.env.AI_OUTPUT_USD_PER_MILLION_TOKENS;
+  const inputRate = inputRateRaw ? Number(inputRateRaw) : Number.NaN;
+  const outputRate = outputRateRaw ? Number(outputRateRaw) : Number.NaN;
   const estimatedCostUsd = Number.isFinite(inputRate) && Number.isFinite(outputRate)
     ? (input.inputTokens * inputRate + input.outputTokens * outputRate) / 1_000_000
     : undefined;
