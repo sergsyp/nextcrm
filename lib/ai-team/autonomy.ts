@@ -170,7 +170,7 @@ export async function reconcileProspectingPipeline(now = new Date()) {
     const task = await prismadb.tasks.findUnique({ where: { id: cycle.taskId! }, select: { tags: true } });
     const tags = task?.tags && typeof task.tags === "object" && !Array.isArray(task.tags)
       ? task.tags as Record<string, unknown> : {};
-    if (tags.aiRunStatus !== "completed" && tags.aiRunStatus !== "blocked") continue;
+    if (!["completed", "failed", "blocked"].includes(String(tags.aiRunStatus ?? ""))) continue;
     const targets = await prismadb.crm_Targets.findMany({
       where: { deletedAt: null, tags: { has: `cycle:${cycle.id}` } }, select: { id: true },
     });
