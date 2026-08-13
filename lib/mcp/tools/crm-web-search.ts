@@ -54,7 +54,9 @@ export async function searchPublicWeb(query: string, limit: number): Promise<Pub
     });
     if (results.length >= limit) break;
   }
-  if (!results.length) externalError("PUBLIC_WEB_SEARCH_NO_RESULTS");
+  // An empty search page is a valid business result, not an infrastructure
+  // failure. Returning [] lets the researcher reformulate the query within
+  // the same run instead of failing and retrying the whole task.
   return results;
 }
 
