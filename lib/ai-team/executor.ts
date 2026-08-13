@@ -256,7 +256,29 @@ export async function runAgentTask(key: AiAgentKey, taskId?: string) {
           aiLastTool: tool.name,
           aiRunTurns: turns,
         });
-        const result = await tool.handler(args as never, agentUser.id, authzUser);
+        let result: unknown;
+        try {
+          result = await tool.handler(args as never, agentUser.id, authzUser);
+        } catch (toolError) {
+          const toolMessage = toolError instanceof Error ? toolError.message : String(toolError);
+          if (!/NOT_FOUND/i.test(toolMessage)) throw toolError;
+          result = {
+            ok: false,
+            error: "NOT_FOUND",
+            recoverable: true,
+            instruction: "Объект отсутствует или устарел. Найди актуальный объект через list/search и продолжай задачу.",
+          };
+          await logPipelineEvent({
+            eventType: "AI_TOOL_NOT_FOUND_RECOVERED",
+            level: "WARNING",
+            message: `${definition.name}: отсутствующий объект не остановил AI-запуск`,
+            agentKey: key,
+            taskId: task.id,
+            stage: task.assigned_section?.title,
+            metadata: { tool: tool.name },
+            ...context,
+          });
+        }
         messages.push({
           role: "tool",
           tool_call_id: call.id,
