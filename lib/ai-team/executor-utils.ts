@@ -3,7 +3,7 @@ import type { AiAgentKey } from "./types";
 const SECTION_BY_AGENT: Record<AiAgentKey, readonly string[]> = {
   researcher: ["Входящие идеи", "Исследование"],
   sales: ["Подготовка предложения", "Готово к тесту", "Тест продаж"],
-  controller: ["Проверка"],
+  controller: ["Проверка", "На проверке"],
 };
 
 export function eligibleSectionsForAgent(key: AiAgentKey): readonly string[] {
