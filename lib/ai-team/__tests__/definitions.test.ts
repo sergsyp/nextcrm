@@ -46,5 +46,16 @@ describe("AI team configuration", () => {
     expect(content).toContain("без повторного SMTP");
     expect(content).toContain("crm_publish_landing");
     expect(content).toContain("Встроенного визуального");
+    expect(content).toContain("Ночной поиск и дневные квоты");
+    expect(content).toContain("AI-расходы");
+    expect(content).toContain("Алиса → Роман");
+  });
+
+  it("keeps deterministic handoffs in code and agent verdicts structured", () => {
+    const researcher = AI_AGENT_DEFINITIONS.find((agent) => agent.key === "researcher")!;
+    const controller = AI_AGENT_DEFINITIONS.find((agent) => agent.key === "controller")!;
+    expect(researcher.instructions).toContain("код проверит новые Target и передаст пакет Роману");
+    expect(controller.instructions).toContain("машинно-читаемого вердикта");
+    expect(controller.instructions).toContain("не создавай передачу Марку вручную");
   });
 });
