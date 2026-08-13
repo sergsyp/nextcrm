@@ -1,5 +1,6 @@
 import { inngest } from "@/inngest/client";
 import { prismadb } from "@/lib/prisma";
+import { reportIncident, resolveIncident } from "@/lib/ai-team/observability";
 
 /** Retries synced messages whose bodies have not reached READY within ten minutes. */
 export const emailBodyIntegrity = inngest.createFunction(
@@ -33,8 +34,8 @@ export const emailBodyIntegrity = inngest.createFunction(
       );
     }
 
-    const failed = await step.run("count-terminal-failures", () =>
-      prismadb.email.count({
+    const failures = await step.run("find-terminal-failures", () =>
+      prismadb.email.findMany({
         where: {
           isDeleted: false,
           imapUid: { not: null },
@@ -42,11 +43,22 @@ export const emailBodyIntegrity = inngest.createFunction(
           bodyHtml: null,
           bodyFetchAttempts: { gte: 3 },
         },
+        select: { id: true, bodyFetchLastError: true, bodyFetchLastAttemptAt: true },
+        take: 100,
       })
     );
-    if (failed > 0) {
-      console.error(`[email-body-integrity] ${failed} email(s) failed body loading after 3 attempts`);
+    if (failures.length > 0) {
+      await reportIncident({
+        code: "EMAIL_BODY_FETCH_EXHAUSTED",
+        title: `${failures.length} писем не удалось загрузить после трёх попыток`,
+        severity: "ERROR",
+        stage: "email-sync",
+        owner: "CRM system",
+        details: { emails: failures },
+      });
+    } else {
+      await resolveIncident("EMAIL_BODY_FETCH_EXHAUSTED", undefined, "Все тела писем загружены или исключены из синхронизации");
     }
-    return { retried: retryable.length, terminalFailures: failed };
+    return { retried: retryable.length, terminalFailures: failures.length };
   }
 );

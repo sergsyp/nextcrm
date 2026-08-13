@@ -240,7 +240,32 @@ export async function runAgentTask(key: AiAgentKey, taskId?: string) {
         const tool = tools.find((candidate) => candidate.name === call.function.name);
         if (!tool) throw new Error(`Tool is not allowed: ${call.function.name}`);
         const rawArgs = JSON.parse(call.function.arguments || "{}");
-        let args = tool.schema.parse(rawArgs) as Record<string, unknown>;
+        const parsed = tool.schema.safeParse(rawArgs);
+        if (!parsed.success) {
+          messages.push({
+            role: "tool",
+            tool_call_id: call.id,
+            content: JSON.stringify({
+              ok: false,
+              error: "INVALID_TOOL_ARGUMENTS",
+              recoverable: true,
+              issues: parsed.error.issues.map((issue) => ({ path: issue.path, message: issue.message })),
+              instruction: "Исправь аргументы инструмента, при необходимости сначала получи актуальный UUID через list/search, затем продолжай задачу.",
+            }),
+          });
+          await logPipelineEvent({
+            eventType: "AI_TOOL_ARGUMENTS_RECOVERED",
+            level: "WARNING",
+            message: `${definition.name}: некорректные аргументы инструмента возвращены агенту для исправления`,
+            agentKey: key,
+            taskId: task.id,
+            stage: task.assigned_section?.title,
+            metadata: { tool: tool.name, issueCount: parsed.error.issues.length },
+            ...context,
+          });
+          continue;
+        }
+        let args = parsed.data as Record<string, unknown>;
         if (tool.name === "crm_create_target") {
           const taskTags = parseTags(task.tags);
           const requiredTags = [

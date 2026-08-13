@@ -134,9 +134,9 @@ export async function reportIncident(input: {
   });
 }
 
-export async function resolveIncident(code: string, taskId: string, resolution: string) {
+export async function resolveIncident(code: string, taskId: string | undefined, resolution: string) {
   const incidents = await prismadb.ai_Incident.findMany({
-    where: { code, taskId, status: { in: ["OPEN", "RECOVERING"] } },
+    where: { code, ...(taskId ? { taskId } : {}), status: { in: ["OPEN", "RECOVERING"] } },
     select: { id: true },
   });
   await prismadb.ai_Incident.updateMany({
