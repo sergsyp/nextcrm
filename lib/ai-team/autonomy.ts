@@ -230,6 +230,8 @@ export async function reconcileProspectingPipeline(now = new Date()) {
     const salesSection = board?.board_relation?.sections.find((item) => item.title === "Подготовка предложения");
     if (!salesSection) continue;
     const targetIds = Array.isArray(tags.targetIds) ? tags.targetIds.filter((id): id is string => typeof id === "string") : [];
+    const direction = typeof tags.direction === "string" ? tags.direction : "unknown";
+    const prospectingCycleId = typeof tags.prospectingCycleId === "string" ? tags.prospectingCycleId : undefined;
     const maxPosition = await prismadb.tasks.aggregate({ where: { section: salesSection.id }, _max: { position: true } });
     const salesTask = await prismadb.tasks.create({
       data: {
@@ -238,11 +240,11 @@ export async function reconcileProspectingPipeline(now = new Date()) {
         position: (maxPosition._max.position ?? BigInt(0)) + BigInt(1000), priority: "High",
         section: salesSection.id, user: sales.id, createdBy: sales.id, updatedBy: sales.id,
         dueDateAt: new Date(now.getTime() + 4 * 60 * 60 * 1000),
-        tags: { kind: "sales-prospect-preparation", agent: "sales", direction: tags.direction, sourceReviewTaskId: review.id, targetIds, prospectingCycleId: tags.prospectingCycleId },
+        tags: { kind: "sales-prospect-preparation", agent: "sales", direction, sourceReviewTaskId: review.id, targetIds, ...(prospectingCycleId ? { prospectingCycleId } : {}) },
       },
     });
     await prismadb.tasks.update({ where: { id: review.id }, data: { tags: { ...tags, handoffCreatedAt: now.toISOString(), handoffTaskId: salesTask.id } } });
-    await logPipelineEvent({ eventType: "PIPELINE_HANDOFF_CREATED", message: `${String(tags.direction)}: одобренный пакет передан Марку`, direction: String(tags.direction), stage: "sales-preparation", cycleId: String(tags.prospectingCycleId ?? ""), taskId: salesTask.id, agentKey: "sales", metadata: { targetCount: targetIds.length, sourceReviewTaskId: review.id } });
+    await logPipelineEvent({ eventType: "PIPELINE_HANDOFF_CREATED", message: `${direction}: одобренный пакет передан Марку`, direction, stage: "sales-preparation", cycleId: prospectingCycleId, taskId: salesTask.id, agentKey: "sales", metadata: { targetCount: targetIds.length, sourceReviewTaskId: review.id } });
   }
   return { reconciled };
 }

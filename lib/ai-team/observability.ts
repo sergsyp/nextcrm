@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import type { Prisma } from "@prisma/client";
 import { prismadb } from "@/lib/prisma";
 
 export type PipelineLevel = "INFO" | "WARNING" | "ERROR" | "BLOCKER";
@@ -25,7 +26,7 @@ export async function logPipelineEvent(input: {
   targetId?: string;
   agentKey?: string;
   correlationId?: string;
-  metadata?: Record<string, unknown>;
+  metadata?: Prisma.InputJsonValue;
 }) {
   return prismadb.ai_PipelineEvent.create({
     data: { environment, level: input.level ?? "INFO", ...input },
@@ -106,7 +107,7 @@ export async function reportIncident(input: {
   cycleId?: string;
   taskId?: string;
   owner?: string;
-  details?: Record<string, unknown>;
+  details?: Prisma.InputJsonValue;
 }) {
   const fingerprint = createHash("sha256")
     .update([environment, input.code, input.direction ?? "", input.stage ?? "", input.taskId ?? ""].join(":"))
