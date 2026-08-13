@@ -11,10 +11,19 @@ export const aiTeamScheduledRun = inngest.createFunction(
     name: "AI team: process assigned CRM tasks",
     concurrency: { limit: 1 },
     retries: 2,
-    triggers: [{ cron: process.env.AI_TEAM_CRON ?? "*/15 * * * *" }],
+    triggers: [
+      { cron: process.env.AI_TEAM_CRON ?? "*/15 * * * *" },
+      { event: "ai-team/pipeline.run" },
+    ],
   },
-  async ({ step }) => {
-    const queue = await step.run("ensure-nightly-prospecting", () => ensureNightlyProspecting());
+  async ({ event, step }) => {
+    const requestedAt = event?.name === "ai-team/pipeline.run"
+      && typeof event.data?.requestedAt === "string"
+      ? new Date(event.data.requestedAt)
+      : new Date();
+    if (Number.isNaN(requestedAt.getTime())) throw new Error("Invalid pipeline requestedAt");
+
+    const queue = await step.run("ensure-nightly-prospecting", () => ensureNightlyProspecting(requestedAt));
     const recovery = await step.run("recover-rate-limited-tasks", () => recoverRateLimitedTasks());
     const results = [];
     for (const agent of agents) {
@@ -22,7 +31,7 @@ export const aiTeamScheduledRun = inngest.createFunction(
         await step.run(`run-${agent}`, () => runAgentTask(agent))
       );
     }
-    const pipeline = await step.run("reconcile-prospecting-pipeline", () => reconcileProspectingPipeline());
+    const pipeline = await step.run("reconcile-prospecting-pipeline", () => reconcileProspectingPipeline(requestedAt));
     return { queue, recovery, results, pipeline };
   }
 );
