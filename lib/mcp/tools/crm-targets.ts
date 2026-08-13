@@ -102,7 +102,14 @@ export const crmTargetTools = [
       mobile_phone: z.string().optional(),
       office_phone: z.string().optional(),
       company: z.string().optional(),
+      company_website: z.string().url().optional(),
       position: z.string().optional(),
+      city: z.string().optional(),
+      country: z.string().optional(),
+      industry: z.string().optional(),
+      description: z.string().optional(),
+      tags: z.array(z.string().min(1)).max(30).optional(),
+      notes: z.array(z.string().min(1)).max(30).optional(),
     }),
     async handler(
       args: {
@@ -112,7 +119,14 @@ export const crmTargetTools = [
         mobile_phone?: string;
         office_phone?: string;
         company?: string;
+        company_website?: string;
         position?: string;
+        city?: string;
+        country?: string;
+        industry?: string;
+        description?: string;
+        tags?: string[];
+        notes?: string[];
       },
       userId: string
     ) {
@@ -134,7 +148,14 @@ export const crmTargetTools = [
       mobile_phone: z.string().optional(),
       office_phone: z.string().optional(),
       company: z.string().optional(),
+      company_website: z.string().url().optional(),
       position: z.string().optional(),
+      city: z.string().optional(),
+      country: z.string().optional(),
+      industry: z.string().optional(),
+      description: z.string().optional(),
+      tags: z.array(z.string().min(1)).max(30).optional(),
+      notes: z.array(z.string().min(1)).max(30).optional(),
     }),
     async handler(
       args: {
@@ -145,7 +166,14 @@ export const crmTargetTools = [
         mobile_phone?: string;
         office_phone?: string;
         company?: string;
+        company_website?: string;
         position?: string;
+        city?: string;
+        country?: string;
+        industry?: string;
+        description?: string;
+        tags?: string[];
+        notes?: string[];
       },
       userId: string,
       user: AuthzUser

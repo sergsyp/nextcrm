@@ -240,7 +240,18 @@ export async function runAgentTask(key: AiAgentKey, taskId?: string) {
         const tool = tools.find((candidate) => candidate.name === call.function.name);
         if (!tool) throw new Error(`Tool is not allowed: ${call.function.name}`);
         const rawArgs = JSON.parse(call.function.arguments || "{}");
-        const args = tool.schema.parse(rawArgs);
+        let args = tool.schema.parse(rawArgs) as Record<string, unknown>;
+        if (tool.name === "crm_create_target") {
+          const taskTags = parseTags(task.tags);
+          const requiredTags = [
+            typeof taskTags.direction === "string" ? `direction:${taskTags.direction}` : null,
+            typeof taskTags.prospectingCycleId === "string" ? `cycle:${taskTags.prospectingCycleId}` : null,
+          ].filter((value): value is string => Boolean(value));
+          const requestedTags = Array.isArray(args.tags)
+            ? args.tags.filter((value): value is string => typeof value === "string")
+            : [];
+          args = { ...args, tags: [...new Set([...requestedTags, ...requiredTags])] };
+        }
         await markRun(task.id, agentUser.id, "running", {
           aiLastTool: tool.name,
           aiRunTurns: turns,
