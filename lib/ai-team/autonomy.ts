@@ -11,6 +11,13 @@ type DirectionConfig = {
   taskBrief: string;
 };
 
+function findSection<T extends { title: string }>(
+  sections: T[],
+  titles: readonly string[]
+): T | undefined {
+  return sections.find((section) => titles.includes(section.title));
+}
+
 const DEFAULT_DIRECTIONS: DirectionConfig[] = [
   {
     key: "metalworking",
@@ -196,8 +203,23 @@ export async function reconcileProspectingPipeline(now = new Date()) {
       continue;
     }
     const board = await prismadb.boards.findUnique({ where: { id: cycle.boardId }, include: { sections: true } });
-    const reviewSection = board?.sections.find((item) => item.title === "Проверка");
-    if (!reviewSection) continue;
+    const reviewSection = board
+      ? findSection(board.sections, ["Проверка", "На проверке"])
+      : undefined;
+    if (!reviewSection) {
+      await reportIncident({
+        code: "PIPELINE_REVIEW_SECTION_MISSING",
+        title: `${cycle.direction}: отсутствует этап проверки кандидатов`,
+        severity: "BLOCKER",
+        direction: cycle.direction,
+        stage: "handoff",
+        cycleId: cycle.id,
+        taskId: cycle.taskId!,
+        owner: "Роман Ястребов",
+        details: { expectedSections: ["Проверка", "На проверке"] },
+      });
+      continue;
+    }
     const existingReview = await prismadb.tasks.findFirst({
       where: { tags: { path: ["sourceCycleId"], equals: cycle.id } }, select: { id: true },
     });
@@ -227,8 +249,23 @@ export async function reconcileProspectingPipeline(now = new Date()) {
     const summary = String(tags.aiRunSummary ?? "");
     if (!/\bAPPROVED\b/.test(summary)) continue;
     const board = review.section ? await prismadb.sections.findUnique({ where: { id: review.section }, include: { board_relation: { include: { sections: true } } } }) : null;
-    const salesSection = board?.board_relation?.sections.find((item) => item.title === "Подготовка предложения");
-    if (!salesSection) continue;
+    const salesSection = board?.board_relation
+      ? findSection(board.board_relation.sections, ["Подготовка предложения", "Готово к тесту"])
+      : undefined;
+    if (!salesSection) {
+      await reportIncident({
+        code: "PIPELINE_SALES_SECTION_MISSING",
+        title: `${String(tags.direction ?? "unknown")}: отсутствует этап подготовки продаж`,
+        severity: "BLOCKER",
+        direction: typeof tags.direction === "string" ? tags.direction : undefined,
+        stage: "handoff",
+        cycleId: typeof tags.prospectingCycleId === "string" ? tags.prospectingCycleId : undefined,
+        taskId: review.id,
+        owner: "Роман Ястребов",
+        details: { expectedSections: ["Подготовка предложения", "Готово к тесту"] },
+      });
+      continue;
+    }
     const targetIds = Array.isArray(tags.targetIds) ? tags.targetIds.filter((id): id is string => typeof id === "string") : [];
     const direction = typeof tags.direction === "string" ? tags.direction : "unknown";
     const prospectingCycleId = typeof tags.prospectingCycleId === "string" ? tags.prospectingCycleId : undefined;

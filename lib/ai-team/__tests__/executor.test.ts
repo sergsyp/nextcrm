@@ -18,7 +18,7 @@ describe("AI team executor", () => {
       "Готово к тесту",
       "Тест продаж",
     ]);
-    expect(eligibleSectionsForAgent("controller")).toEqual(["Проверка"]);
+    expect(eligibleSectionsForAgent("controller")).toEqual(["Проверка", "На проверке"]);
   });
 
   test("exposes only explicitly allowed tools", () => {
