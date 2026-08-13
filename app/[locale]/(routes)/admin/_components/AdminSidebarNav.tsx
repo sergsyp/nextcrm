@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { Key, Users, Settings, SlidersHorizontal, ClipboardList, Coins, FileText, CalendarClock } from "lucide-react";
+import { Key, Users, Settings, SlidersHorizontal, ClipboardList, Coins, FileText, CalendarClock, Activity } from "lucide-react";
 
 const navItems = [
   { label: "LLM Keys",     href: "/admin/llm-keys",     icon: Key },
@@ -13,6 +13,7 @@ const navItems = [
   { label: "Funnel Settings", href: "/admin/funnel-settings", icon: SlidersHorizontal },
   { label: "Calendar Settings", href: "/admin/calendar-settings", icon: CalendarClock },
   { label: "Audit Log",    href: "/admin/audit-log",    icon: ClipboardList },
+  { label: "AI & Pipeline", href: "/admin/ai-observability", icon: Activity },
   { label: "Currencies",   href: "/admin/currencies",   icon: Coins },
   { label: "Invoices",     href: "/admin/invoices",     icon: FileText },
 ];

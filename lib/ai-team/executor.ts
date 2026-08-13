@@ -15,6 +15,14 @@ import {
   toSerializable,
   withRateLimitBackoff,
 } from "./executor-utils";
+import {
+  classifyAiError,
+  logPipelineEvent,
+  pipelineContext,
+  recordAiUsage,
+  reportIncident,
+  resolveIncident,
+} from "./observability";
 
 type McpTool = (typeof allTools)[number];
 
@@ -127,7 +135,25 @@ export async function runAgentTask(key: AiAgentKey, taskId?: string) {
     throw new Error("Task is outside the agent's eligible sections");
   }
 
+  const context = pipelineContext(task.tags);
+  const runStartedAt = Date.now();
+  const model = process.env.AI_TEAM_MODEL ?? AI_CHAT_MODEL;
+  let inputTokens = 0;
+  let outputTokens = 0;
+  let totalTokens = 0;
+  let toolCalls = 0;
+  let providerRequestIds: string[] = [];
+  let fallbackUsed = false;
+
   await markRun(task.id, agentUser.id, "running");
+  await logPipelineEvent({
+    eventType: "AI_RUN_STARTED",
+    message: `${definition.name} начал выполнение задачи`,
+    agentKey: key,
+    taskId: task.id,
+    stage: task.assigned_section?.title,
+    ...context,
+  });
   const allowedTools = selectAllowedTools(allTools, definition.toolNames);
   const tools = selectToolsForTask(
     allowedTools,
@@ -165,9 +191,11 @@ export async function runAgentTask(key: AiAgentKey, taskId?: string) {
     let reachedFinalAnswer = false;
     while (turns < definition.maxToolTurns) {
       turns += 1;
-      const response = await withRateLimitBackoff(() =>
-        client.chat.completions.create({
-          model: process.env.AI_TEAM_MODEL ?? AI_CHAT_MODEL,
+      let response;
+      try {
+        response = await withRateLimitBackoff(() =>
+          client.chat.completions.create({
+          model,
           messages,
           tools: openAiTools,
           tool_choice: "auto",
@@ -177,8 +205,27 @@ export async function runAgentTask(key: AiAgentKey, taskId?: string) {
           ),
         }, {
           timeout: Number(process.env.AI_TEAM_LLM_TIMEOUT_MS ?? 120_000),
-        })
-      );
+          })
+        );
+      } catch (error) {
+        const classified = classifyAiError(error);
+        const fallbackModel = process.env.AI_TEAM_FALLBACK_MODEL;
+        if (classified.code !== "AI_CONTENT_FILTER" || !fallbackModel) throw error;
+        fallbackUsed = true;
+        response = await withRateLimitBackoff(() => client.chat.completions.create({
+          model: fallbackModel,
+          messages,
+          tools: openAiTools,
+          tool_choice: "auto",
+          temperature: 0.2,
+          max_completion_tokens: Number(process.env.AI_TEAM_MAX_COMPLETION_TOKENS ?? 8000),
+        }, { timeout: Number(process.env.AI_TEAM_LLM_TIMEOUT_MS ?? 120_000) }));
+      }
+      inputTokens += response.usage?.prompt_tokens ?? 0;
+      outputTokens += response.usage?.completion_tokens ?? 0;
+      totalTokens += response.usage?.total_tokens ?? 0;
+      const responseId = response.id;
+      if (responseId) providerRequestIds.push(responseId);
       const message = response.choices[0]?.message;
       if (!message) throw new Error("AI provider returned no message");
       messages.push(message);
@@ -189,6 +236,7 @@ export async function runAgentTask(key: AiAgentKey, taskId?: string) {
       }
       for (const call of message.tool_calls) {
         if (call.type !== "function") continue;
+        toolCalls += 1;
         const tool = tools.find((candidate) => candidate.name === call.function.name);
         if (!tool) throw new Error(`Tool is not allowed: ${call.function.name}`);
         const rawArgs = JSON.parse(call.function.arguments || "{}");
@@ -213,10 +261,42 @@ export async function runAgentTask(key: AiAgentKey, taskId?: string) {
     await markRun(task.id, agentUser.id, "completed", {
       aiRunTurns: turns,
       aiRunSummary: finalText.slice(0, 1000),
+      aiRunError: null,
+      aiRunFailures: 0,
+      aiRunCompletedAt: new Date().toISOString(),
     });
+    await recordAiUsage({
+      provider: process.env.AI_PROVIDER_NAME ?? "openai-compatible",
+      model: fallbackUsed ? process.env.AI_TEAM_FALLBACK_MODEL ?? model : model,
+      agentKey: key,
+      purpose: String(parseTags(task.tags).kind ?? "crm-task"),
+      cycleId: context.cycleId,
+      taskId: task.id,
+      providerRequestIds,
+      inputTokens,
+      outputTokens,
+      totalTokens,
+      toolCalls,
+      turns,
+      durationMs: Date.now() - runStartedAt,
+      status: "completed",
+      businessResult: finalText.slice(0, 250),
+      fallbackUsed,
+    });
+    await logPipelineEvent({
+      eventType: "AI_RUN_COMPLETED",
+      message: `${definition.name} завершил задачу`,
+      agentKey: key,
+      taskId: task.id,
+      stage: task.assigned_section?.title,
+      metadata: { turns, toolCalls, totalTokens, fallbackUsed },
+      ...context,
+    });
+    await resolveIncident("AI_RUN_FAILED", task.id, "Последующий AI-запуск завершился успешно");
     return { completed: true, taskId: task.id, turns, summary: finalText };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    const classified = classifyAiError(error);
     const current = await prismadb.tasks.findUnique({
       where: { id: task.id },
       select: { tags: true },
@@ -228,6 +308,46 @@ export async function runAgentTask(key: AiAgentKey, taskId?: string) {
       aiRunFailures: failures,
       aiRunError: message.slice(0, 1000),
     });
+    await recordAiUsage({
+      provider: process.env.AI_PROVIDER_NAME ?? "openai-compatible",
+      model,
+      agentKey: key,
+      purpose: String(parseTags(task.tags).kind ?? "crm-task"),
+      cycleId: context.cycleId,
+      taskId: task.id,
+      providerRequestIds,
+      inputTokens,
+      outputTokens,
+      totalTokens,
+      toolCalls,
+      turns: Number(parseTags(current?.tags).aiRunTurns ?? 0),
+      durationMs: Date.now() - runStartedAt,
+      status: failures >= 3 ? "blocked" : "failed",
+      errorCode: classified.code,
+      fallbackUsed,
+    });
+    await logPipelineEvent({
+      eventType: failures >= 3 ? "AI_RUN_BLOCKED" : "AI_RUN_FAILED",
+      level: failures >= 3 ? "BLOCKER" : "ERROR",
+      message: `${definition.name}: ${message.slice(0, 500)}`,
+      agentKey: key,
+      taskId: task.id,
+      stage: task.assigned_section?.title,
+      metadata: { code: classified.code, failures, transient: classified.transient },
+      ...context,
+    });
+    if (failures >= 3) {
+      await reportIncident({
+        code: classified.code,
+        title: `AI-задача заблокирована: ${definition.name}`,
+        severity: "BLOCKER",
+        taskId: task.id,
+        stage: task.assigned_section?.title,
+        details: { message: message.slice(0, 1000), failures },
+        owner: "Роман Ястребов",
+        ...context,
+      });
+    }
     throw error;
   }
 }

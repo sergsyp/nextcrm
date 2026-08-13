@@ -1,7 +1,7 @@
 import { inngest } from "@/inngest/client";
 import { runAgentTask } from "@/lib/ai-team/executor";
 import type { AiAgentKey } from "@/lib/ai-team/types";
-import { ensureDailyAutonomousQueue, recoverRateLimitedTasks } from "@/lib/ai-team/autonomy";
+import { ensureNightlyProspecting, reconcileProspectingPipeline, recoverRateLimitedTasks } from "@/lib/ai-team/autonomy";
 
 const agents: AiAgentKey[] = ["researcher", "sales", "controller"];
 
@@ -14,7 +14,7 @@ export const aiTeamScheduledRun = inngest.createFunction(
     triggers: [{ cron: process.env.AI_TEAM_CRON ?? "*/15 * * * *" }],
   },
   async ({ step }) => {
-    const queue = await step.run("ensure-autonomous-queue", () => ensureDailyAutonomousQueue());
+    const queue = await step.run("ensure-nightly-prospecting", () => ensureNightlyProspecting());
     const recovery = await step.run("recover-rate-limited-tasks", () => recoverRateLimitedTasks());
     const results = [];
     for (const agent of agents) {
@@ -22,7 +22,8 @@ export const aiTeamScheduledRun = inngest.createFunction(
         await step.run(`run-${agent}`, () => runAgentTask(agent))
       );
     }
-    return { queue, recovery, results };
+    const pipeline = await step.run("reconcile-prospecting-pipeline", () => reconcileProspectingPipeline());
+    return { queue, recovery, results, pipeline };
   }
 );
 
