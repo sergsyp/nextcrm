@@ -144,3 +144,10 @@ export async function resolveIncident(code: string, taskId: string | undefined, 
     data: { status: "RESOLVED", resolvedAt: new Date(), resolution },
   });
 }
+
+export async function resolveTaskIncidents(taskId: string, resolution: string) {
+  await prismadb.ai_Incident.updateMany({
+    where: { taskId, status: { in: ["OPEN", "RECOVERING"] } },
+    data: { status: "RESOLVED", resolvedAt: new Date(), resolution },
+  });
+}

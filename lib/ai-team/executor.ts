@@ -22,6 +22,7 @@ import {
   recordAiUsage,
   reportIncident,
   resolveIncident,
+  resolveTaskIncidents,
 } from "./observability";
 
 type McpTool = (typeof allTools)[number];
@@ -377,6 +378,7 @@ export async function runAgentTask(key: AiAgentKey, taskId?: string) {
       ...context,
     });
     await resolveIncident("AI_RUN_FAILED", task.id, "Последующий AI-запуск завершился успешно");
+    await resolveTaskIncidents(task.id, "Последующий AI-запуск завершился успешно");
     return { completed: true, taskId: task.id, turns, summary: finalText };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
