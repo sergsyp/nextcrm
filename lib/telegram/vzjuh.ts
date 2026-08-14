@@ -4,9 +4,22 @@ import { readFileSync } from "node:fs";
 export const VZJUH_BOT_ACCOUNT = "vzjuh_bot";
 
 function required(name: string): string {
-  const value = process.env[name]?.trim();
+  const configured = name === "VZJUH_TELEGRAM_BOT_TOKEN"
+    ? {
+        value: process.env.VZJUH_TELEGRAM_BOT_TOKEN,
+        file: process.env.VZJUH_TELEGRAM_BOT_TOKEN_FILE,
+      }
+    : name === "VZJUH_TELEGRAM_WEBHOOK_SECRET"
+      ? {
+          value: process.env.VZJUH_TELEGRAM_WEBHOOK_SECRET,
+          file: process.env.VZJUH_TELEGRAM_WEBHOOK_SECRET_FILE,
+        }
+      : name === "VZJUH_TELEGRAM_ADMIN_CHAT_ID"
+        ? { value: process.env.VZJUH_TELEGRAM_ADMIN_CHAT_ID, file: undefined }
+        : { value: undefined, file: undefined };
+  const value = configured.value?.trim();
   if (value) return value;
-  const file = process.env[`${name}_FILE`]?.trim();
+  const file = configured.file?.trim();
   if (file) {
     const fromFile = readFileSync(file, "utf8").trim();
     if (fromFile) return fromFile;
