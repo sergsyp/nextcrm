@@ -5,6 +5,10 @@ import { requestSergeyApproval } from "@/lib/telegram/approval-service";
 
 type SentMessage = { message_id: number; date: number };
 
+function jsonSafe<T>(value: T): unknown {
+  return JSON.parse(JSON.stringify(value, (_key, item) => typeof item === "bigint" ? item.toString() : item));
+}
+
 export const crmTelegramTools = [
   {
     name: "crm_get_telegram_conversation",
@@ -16,7 +20,7 @@ export const crmTelegramTools = [
         include: { messages: { orderBy: { sentAt: "asc" }, take: 100 } },
       });
       if (!data || data.botAccount !== VZJUH_BOT_ACCOUNT) throw new Error("NOT_FOUND");
-      return { data };
+      return { data: jsonSafe(data) };
     },
   },
   {
@@ -39,7 +43,7 @@ export const crmTelegramTools = [
           metadata: { crmUserId: userId },
         },
       });
-      return { data: message };
+      return { data: jsonSafe(message) };
     },
   },
   {
@@ -56,7 +60,7 @@ export const crmTelegramTools = [
       const task = await prismadb.tasks.findFirst({ where: { id: args.taskId, user: userId }, select: { id: true } });
       if (!task) throw new Error("NOT_FOUND");
       const data = await requestSergeyApproval({ ...args, requestedByAgent: "sales" });
-      return { data };
+      return { data: jsonSafe(data) };
     },
   },
 ];
