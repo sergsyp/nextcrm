@@ -1,11 +1,17 @@
 import { timingSafeEqual } from "node:crypto";
+import { readFileSync } from "node:fs";
 
 export const VZJUH_BOT_ACCOUNT = "vzjuh_bot";
 
 function required(name: string): string {
   const value = process.env[name]?.trim();
-  if (!value) throw new Error(`${name} is not configured`);
-  return value;
+  if (value) return value;
+  const file = process.env[`${name}_FILE`]?.trim();
+  if (file) {
+    const fromFile = readFileSync(file, "utf8").trim();
+    if (fromFile) return fromFile;
+  }
+  throw new Error(`${name} is not configured`);
 }
 
 export function vzjuhAdminChatId(): bigint {
@@ -13,7 +19,12 @@ export function vzjuhAdminChatId(): bigint {
 }
 
 export function verifyVzjuhWebhookSecret(value: string | null): boolean {
-  const expected = process.env.VZJUH_TELEGRAM_WEBHOOK_SECRET?.trim();
+  let expected: string | undefined;
+  try {
+    expected = required("VZJUH_TELEGRAM_WEBHOOK_SECRET");
+  } catch {
+    return false;
+  }
   if (!expected || !value) return false;
   const left = Buffer.from(expected);
   const right = Buffer.from(value);
