@@ -5,6 +5,7 @@ import { saveIncomingVzjuhMessage } from "@/lib/telegram/conversation-service";
 import {
   callVzjuhTelegram,
   parseApprovalCallback,
+  type TelegramMethod,
   verifyVzjuhWebhookSecret,
   vzjuhAdminChatId,
 } from "@/lib/telegram/vzjuh";
@@ -25,7 +26,7 @@ type TelegramUpdate = {
   };
 };
 
-async function bestEffortTelegram(method: string, params: Record<string, unknown>) {
+async function bestEffortTelegram(method: TelegramMethod, params: Record<string, unknown>) {
   try {
     await callVzjuhTelegram(method, params);
   } catch (error) {

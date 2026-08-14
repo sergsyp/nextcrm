@@ -49,7 +49,7 @@ export function verifyVzjuhWebhookSecret(value: string | null): boolean {
   return left.length === right.length && timingSafeEqual(left, right);
 }
 
-type TelegramMethod = "sendMessage" | "editMessageText" | "answerCallbackQuery";
+export type TelegramMethod = "sendMessage" | "editMessageText" | "answerCallbackQuery";
 
 export async function callVzjuhTelegram<T>(method: TelegramMethod, body: Record<string, unknown>): Promise<T> {
   const relayUrl = process.env.VZJUH_TELEGRAM_RELAY_URL?.trim().replace(/\/$/, "");
