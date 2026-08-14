@@ -27,7 +27,13 @@ export async function requestSergeyApproval(input: {
 }) {
   const dedupeKey = `${input.taskId}:${input.kind}`;
   const existing = await prismadb.ai_ApprovalRequest.findUnique({ where: { dedupeKey } });
-  if (existing) return existing;
+  if (existing?.status === "PENDING" || existing?.status === "APPROVED") return existing;
+  if (existing) {
+    await prismadb.ai_ApprovalRequest.update({
+      where: { id: existing.id },
+      data: { dedupeKey: null },
+    });
+  }
 
   const chatId = vzjuhAdminChatId();
   const approval = await prismadb.ai_ApprovalRequest.create({
@@ -80,6 +86,46 @@ export async function requestSergeyApproval(input: {
     await prismadb.ai_ApprovalRequest.delete({ where: { id: approval.id } });
     throw error;
   }
+}
+
+export async function sendApprovalReminders(now = new Date()) {
+  const fourHoursAgo = new Date(now.getTime() - 4 * 60 * 60 * 1000);
+  const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const pending = await prismadb.ai_ApprovalRequest.findMany({
+    where: {
+      status: "PENDING",
+      OR: [
+        { reminderCount: 0, createdAt: { lte: fourHoursAgo } },
+        { reminderCount: 1, createdAt: { lte: dayAgo } },
+      ],
+    },
+    orderBy: { createdAt: "asc" },
+    take: 20,
+  });
+  let sent = 0;
+  for (const approval of pending) {
+    await callVzjuhTelegram<TelegramMessage>("sendMessage", {
+      chat_id: vzjuhAdminChatId().toString(),
+      text: [
+        approval.reminderCount === 0 ? "⏰ Напоминание: требуется решение" : "⚠️ Процесс всё ещё ожидает решения",
+        "",
+        approval.title,
+        approval.summary,
+      ].join("\n").slice(0, 4096),
+      reply_markup: {
+        inline_keyboard: [[
+          { text: "✅ Одобрить", callback_data: approvalCallbackData(approval.id, "approve") },
+          { text: "❌ Отклонить", callback_data: approvalCallbackData(approval.id, "reject") },
+        ]],
+      },
+    });
+    await prismadb.ai_ApprovalRequest.update({
+      where: { id: approval.id },
+      data: { reminderCount: { increment: 1 }, lastRemindedAt: now },
+    });
+    sent += 1;
+  }
+  return { sent };
 }
 
 export async function decideSergeyApproval(input: {

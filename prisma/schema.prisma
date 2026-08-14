@@ -1089,6 +1089,8 @@ model ai_ApprovalRequest {
   decisionNote      String?
   decidedAt         DateTime?
   expiresAt         DateTime?
+  reminderCount     Int                       @default(0)
+  lastRemindedAt    DateTime?
   createdAt         DateTime                  @default(now())
   updatedAt         DateTime                  @updatedAt
 
