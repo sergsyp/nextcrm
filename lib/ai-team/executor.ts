@@ -313,7 +313,33 @@ export async function runAgentTask(key: AiAgentKey, taskId?: string) {
     }
 
     if (!reachedFinalAnswer) {
-      throw new Error("AGENT_TURN_LIMIT_REACHED_WITHOUT_FINAL_RESULT");
+      // Tool-heavy reviews used to fail after doing all useful work merely
+      // because the model spent its final turn on a CRM write. Give it one
+      // tools-disabled turn to emit the required machine-readable verdict.
+      messages.push({
+        role: "user",
+        content:
+          "Лимит вызовов инструментов исчерпан. Не вызывай инструменты. Кратко сформулируй итоговый результат по уже полученным данным; для проверки начни с APPROVED, REVISION_REQUIRED, ESCALATED или REJECTED.",
+      });
+      const finalResponse = await client.chat.completions.create({
+        model: fallbackUsed
+          ? process.env.AI_TEAM_FALLBACK_MODEL ?? model
+          : model,
+        messages,
+        temperature: 0.2,
+        max_completion_tokens: Number(
+          process.env.AI_TEAM_FINALIZATION_TOKENS ?? 1200,
+        ),
+      }, {
+        timeout: Number(process.env.AI_TEAM_LLM_TIMEOUT_MS ?? 120_000),
+      });
+      inputTokens += finalResponse.usage?.prompt_tokens ?? 0;
+      outputTokens += finalResponse.usage?.completion_tokens ?? 0;
+      totalTokens += finalResponse.usage?.total_tokens ?? 0;
+      if (finalResponse.id) providerRequestIds.push(finalResponse.id);
+      finalText = finalResponse.choices[0]?.message?.content?.trim() ?? "";
+      if (!finalText) throw new Error("AGENT_FINALIZATION_RETURNED_EMPTY_RESULT");
+      reachedFinalAnswer = true;
     }
 
     await markRun(task.id, agentUser.id, "completed", {

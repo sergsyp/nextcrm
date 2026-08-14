@@ -77,6 +77,22 @@ describe("AI team executor", () => {
       selectToolsForTask(tools, "Подготовь письмо клиенту").map((tool) => tool.name)
     ).toContain("crm_send_individual_email");
   });
+
+  test("always exposes read-only Target verification tools when allowed", () => {
+    const tools = [
+      { name: "projects_get_task" },
+      { name: "crm_list_targets" },
+      { name: "crm_get_target" },
+      { name: "crm_search_targets" },
+    ];
+    expect(selectToolsForTask(tools, "Контролировать запас очереди").map((tool) => tool.name))
+      .toEqual([
+        "projects_get_task",
+        "crm_list_targets",
+        "crm_get_target",
+        "crm_search_targets",
+      ]);
+  });
 });
 
 describe("AI provider rate-limit recovery", () => {

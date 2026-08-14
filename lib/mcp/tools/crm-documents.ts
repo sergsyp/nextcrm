@@ -97,7 +97,13 @@ export const crmDocumentTools = [
       const access =
         user.role === "admin"
           ? {}
-          : { OR: [{ created_by_user: userId }, { assigned_user: userId }] };
+          : {
+              OR: [
+                { created_by_user: userId },
+                { assigned_user: userId },
+                { visibility: { in: ["shared", "team"] } },
+              ],
+            };
       const textFilter = args.query
         ? {
             OR: [
@@ -369,9 +375,22 @@ export const crmDocumentTools = [
       },
       userId: string
     ) {
+      const user = await prismadb.users.findUnique({
+        where: { id: userId },
+        select: { role: true },
+      });
+      if (!user) notFound("User");
       const where: any = {
-        created_by_user: userId,
         deletedAt: null,
+        ...(user.role === "admin"
+          ? {}
+          : {
+              OR: [
+                { created_by_user: userId },
+                { assigned_user: userId },
+                { visibility: { in: ["shared", "team"] } },
+              ],
+            }),
       };
       if (args.entityType && args.entityId) {
         const relation =
@@ -415,7 +434,13 @@ export const crmDocumentTools = [
           deletedAt: null,
           ...(user.role === "admin"
             ? {}
-            : { OR: [{ created_by_user: userId }, { assigned_user: userId }] }),
+            : {
+                OR: [
+                  { created_by_user: userId },
+                  { assigned_user: userId },
+                  { visibility: { in: ["shared", "team"] } },
+                ],
+              }),
         },
         include: {
           accounts: true,
