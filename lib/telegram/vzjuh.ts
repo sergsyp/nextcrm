@@ -1,0 +1,45 @@
+import { timingSafeEqual } from "node:crypto";
+
+export const VZJUH_BOT_ACCOUNT = "vzjuh_bot";
+
+function required(name: string): string {
+  const value = process.env[name]?.trim();
+  if (!value) throw new Error(`${name} is not configured`);
+  return value;
+}
+
+export function vzjuhAdminChatId(): bigint {
+  return BigInt(required("VZJUH_TELEGRAM_ADMIN_CHAT_ID"));
+}
+
+export function verifyVzjuhWebhookSecret(value: string | null): boolean {
+  const expected = process.env.VZJUH_TELEGRAM_WEBHOOK_SECRET?.trim();
+  if (!expected || !value) return false;
+  const left = Buffer.from(expected);
+  const right = Buffer.from(value);
+  return left.length === right.length && timingSafeEqual(left, right);
+}
+
+type TelegramMethod = "sendMessage" | "editMessageText" | "answerCallbackQuery";
+
+export async function callVzjuhTelegram<T>(method: TelegramMethod, body: Record<string, unknown>): Promise<T> {
+  const token = required("VZJUH_TELEGRAM_BOT_TOKEN");
+  const response = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const payload = await response.json() as { ok?: boolean; result?: T; description?: string };
+  if (!response.ok || !payload.ok) throw new Error(`TELEGRAM_${method.toUpperCase()}_FAILED: ${payload.description ?? response.status}`);
+  return payload.result as T;
+}
+
+export function approvalCallbackData(id: string, decision: "approve" | "reject"): string {
+  return `approval:${id}:${decision}`;
+}
+
+export function parseApprovalCallback(value: string): { id: string; decision: "APPROVED" | "REJECTED" } | null {
+  const match = /^approval:([0-9a-f-]{36}):(approve|reject)$/i.exec(value);
+  if (!match) return null;
+  return { id: match[1], decision: match[2] === "approve" ? "APPROVED" : "REJECTED" };
+}

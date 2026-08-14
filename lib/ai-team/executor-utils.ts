@@ -75,6 +75,7 @@ const TOOL_KEYWORDS: Array<{ pattern: RegExp; prefixes: string[] }> = [
   { pattern: /целе|target|обогащ|enrich/i, prefixes: ["crm_list_targets", "crm_get_target", "crm_search_targets", "crm_create_target", "crm_update_target", "crm_list_target_lists", "crm_get_target_list", "crm_create_target_list", "crm_update_target_list", "crm_add_to_target_list", "crm_enrich"] },
   { pattern: /поиск|источник|сайт|кандидат|компан|web|search/i, prefixes: ["crm_web_search"] },
   { pattern: /почт|письм|email|переписк/i, prefixes: ["crm_list_email_accounts", "crm_list_emails", "crm_get_email", "crm_send_individual_email"] },
+  { pattern: /telegram|@vzjuh_bot|approval|подтвержден|согласован/i, prefixes: ["crm_get_telegram_conversation", "crm_send_telegram_message", "crm_request_sergey_approval"] },
   { pattern: /кампан|рассыл|campaign/i, prefixes: ["campaigns_"] },
   { pattern: /продукт|товар|услуг|тариф|product/i, prefixes: ["crm_list_products", "crm_get_product", "crm_create_product", "crm_update_product"] },
   { pattern: /отч[её]т|метрик|report|аналит/i, prefixes: ["reports_"] },

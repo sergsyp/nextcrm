@@ -1065,6 +1065,74 @@ enum ai_Incident_Status {
   RESOLVED
 }
 
+enum ai_ApprovalRequest_Status {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+  CANCELLED
+}
+
+model ai_ApprovalRequest {
+  id                String                    @id @default(uuid()) @db.Uuid
+  kind              String
+  title             String
+  summary           String
+  details           Json?                     @db.JsonB
+  status            ai_ApprovalRequest_Status @default(PENDING)
+  requestedByAgent  String
+  taskId            String?                   @db.Uuid
+  dedupeKey         String?                   @unique
+  telegramChatId    BigInt?
+  telegramMessageId BigInt?
+  decidedByUserId   String?                   @db.Uuid
+  decisionNote      String?
+  decidedAt         DateTime?
+  expiresAt         DateTime?
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+
+  @@index([status, createdAt])
+  @@index([taskId, status])
+  @@index([requestedByAgent, createdAt])
+}
+
+model crm_TelegramConversation {
+  id          String                @id @default(uuid()) @db.Uuid
+  botAccount  String
+  chatId      BigInt
+  chatKind    String                @default("CUSTOMER")
+  username    String?
+  displayName String?
+  status      String                @default("ACTIVE")
+  leadId      String?               @db.Uuid
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  messages    crm_TelegramMessage[]
+
+  @@unique([botAccount, chatId])
+  @@index([status, updatedAt])
+  @@index([leadId])
+}
+
+model crm_TelegramMessage {
+  id                String                   @id @default(uuid()) @db.Uuid
+  conversationId    String                   @db.Uuid
+  telegramMessageId BigInt
+  direction         String
+  senderId          BigInt?
+  text              String
+  status            String                   @default("SENT")
+  metadata          Json?                    @db.JsonB
+  sentAt            DateTime
+  createdAt         DateTime                 @default(now())
+  conversation      crm_TelegramConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, telegramMessageId, direction])
+  @@index([conversationId, sentAt])
+  @@index([direction, createdAt])
+}
+
 model ai_PipelineEvent {
   id            String         @id @default(uuid()) @db.Uuid
   eventType     String

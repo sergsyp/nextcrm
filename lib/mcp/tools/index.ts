@@ -15,6 +15,7 @@ export { crmWebSearchTools } from "./crm-web-search";
 export { campaignTools } from "./campaigns";
 export { projectTools } from "./projects";
 export { reportTools } from "./reports";
+export { crmTelegramTools } from "./crm-telegram";
 
 import { crmAccountTools } from "./crm-accounts";
 import { crmContactTools } from "./crm-contacts";
@@ -33,6 +34,7 @@ import { crmWebSearchTools } from "./crm-web-search";
 import { campaignTools } from "./campaigns";
 import { projectTools } from "./projects";
 import { reportTools } from "./reports";
+import { crmTelegramTools } from "./crm-telegram";
 
 export const allTools = [
   ...crmAccountTools,
@@ -52,4 +54,5 @@ export const allTools = [
   ...campaignTools,
   ...projectTools,
   ...reportTools,
+  ...crmTelegramTools,
 ];

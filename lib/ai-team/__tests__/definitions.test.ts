@@ -49,6 +49,8 @@ describe("AI team configuration", () => {
     expect(content).toContain("Ночной поиск и дневные квоты");
     expect(content).toContain("AI-расходы");
     expect(content).toContain("Алиса → Роман");
+    expect(content).toContain("@vzjuh_bot является штатным каналом NextCRM");
+    expect(content).toContain("crm_request_sergey_approval");
   });
 
   it("keeps deterministic handoffs in code and agent verdicts structured", () => {
