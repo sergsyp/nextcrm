@@ -2,6 +2,7 @@ import { inngest } from "@/inngest/client";
 import { runAgentTask } from "@/lib/ai-team/executor";
 import type { AiAgentKey } from "@/lib/ai-team/types";
 import { ensureNightlyProspecting, reconcileProspectingPipeline, recoverRateLimitedTasks } from "@/lib/ai-team/autonomy";
+import { sendApprovalReminders } from "@/lib/telegram/approval-service";
 
 const agents: AiAgentKey[] = ["researcher", "sales", "controller"];
 
@@ -25,6 +26,7 @@ export const aiTeamScheduledRun = inngest.createFunction(
 
     const queue = await step.run("ensure-nightly-prospecting", () => ensureNightlyProspecting(requestedAt));
     const recovery = await step.run("recover-rate-limited-tasks", () => recoverRateLimitedTasks());
+    const approvalReminders = await step.run("send-approval-reminders", () => sendApprovalReminders());
     const results = [];
     for (const agent of agents) {
       results.push(
@@ -32,7 +34,7 @@ export const aiTeamScheduledRun = inngest.createFunction(
       );
     }
     const pipeline = await step.run("reconcile-prospecting-pipeline", () => reconcileProspectingPipeline(requestedAt));
-    return { queue, recovery, results, pipeline };
+    return { queue, recovery, approvalReminders, results, pipeline };
   }
 );
 
