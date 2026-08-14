@@ -1,4 +1,5 @@
 import { prismadb } from "@/lib/prisma";
+import { inngest } from "@/inngest/client";
 import type { Prisma } from "@prisma/client";
 import { logPipelineEvent } from "@/lib/ai-team/observability";
 import {
@@ -177,4 +178,22 @@ export async function decideSergeyApproval(input: {
     metadata: { approvalRequestId: current.id, kind: current.kind, decision: input.decision },
   });
   return { approval: result, changed: true, taskId: current.taskId };
+}
+
+export async function dispatchApprovalResume(input: {
+  id: string;
+  taskId: string | null;
+  resumeDispatchedAt: Date | null;
+}) {
+  if (!input.taskId || input.resumeDispatchedAt) return { dispatched: false };
+
+  await inngest.send({
+    name: "ai-team/task.run",
+    data: { agent: "sales", taskId: input.taskId },
+  });
+  await prismadb.ai_ApprovalRequest.update({
+    where: { id: input.id },
+    data: { resumeDispatchedAt: new Date() },
+  });
+  return { dispatched: true };
 }

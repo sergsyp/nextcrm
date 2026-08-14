@@ -1088,6 +1088,7 @@ model ai_ApprovalRequest {
   decidedByUserId   String?                   @db.Uuid
   decisionNote      String?
   decidedAt         DateTime?
+  resumeDispatchedAt DateTime?
   expiresAt         DateTime?
   reminderCount     Int                       @default(0)
   lastRemindedAt    DateTime?
