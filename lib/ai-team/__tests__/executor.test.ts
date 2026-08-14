@@ -153,3 +153,25 @@ describe("single-target recovery tool selection", () => {
       ]);
   });
 });
+
+describe("sales preparation tool selection", () => {
+  it("always exposes individual email tools for the sales preparation task kind", () => {
+    const tools = [
+      { name: "projects_get_task" },
+      { name: "crm_list_email_accounts" },
+      { name: "crm_list_emails" },
+      { name: "crm_get_email" },
+      { name: "crm_send_individual_email" },
+      { name: "campaigns_create" },
+    ];
+
+    expect(selectToolsForTask(tools, "Выполнить разрешённую волну", "sales-prospect-preparation")
+      .map((tool) => tool.name)).toEqual([
+        "projects_get_task",
+        "crm_list_email_accounts",
+        "crm_list_emails",
+        "crm_get_email",
+        "crm_send_individual_email",
+      ]);
+  });
+});

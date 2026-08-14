@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { inngest } from "@/inngest/client";
-import { decideSergeyApproval } from "@/lib/telegram/approval-service";
+import { decideSergeyApproval, dispatchApprovalResume } from "@/lib/telegram/approval-service";
 import { saveIncomingVzjuhMessage } from "@/lib/telegram/conversation-service";
 import {
   callVzjuhTelegram,
@@ -64,9 +63,11 @@ export async function POST(request: NextRequest) {
         text: `${callback.message.text ?? result.approval.title}\n\n${label}`.slice(0, 4096),
       });
     }
-    if (result.changed && result.taskId) {
-      await inngest.send({ name: "ai-team/task.run", data: { agent: "sales", taskId: result.taskId } });
-    }
+    await dispatchApprovalResume({
+      id: result.approval.id,
+      taskId: result.taskId,
+      resumeDispatchedAt: result.approval.resumeDispatchedAt,
+    });
     return NextResponse.json({ ok: true });
   }
 

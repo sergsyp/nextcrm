@@ -97,6 +97,16 @@ export function selectToolsForTask<T extends { name: string }>(
     ]);
     return allowedTools.filter((tool) => recoveryTools.has(tool.name));
   }
+  if (taskKind === "sales-prospect-preparation") {
+    const salesPreparationTools = new Set(CORE_TOOL_NAMES);
+    for (const name of [
+      "crm_list_email_accounts",
+      "crm_list_emails",
+      "crm_get_email",
+      "crm_send_individual_email",
+    ]) salesPreparationTools.add(name);
+    return allowedTools.filter((tool) => salesPreparationTools.has(tool.name));
+  }
   const selected = new Set(CORE_TOOL_NAMES);
   for (const category of TOOL_KEYWORDS) {
     if (!category.pattern.test(taskText)) continue;
