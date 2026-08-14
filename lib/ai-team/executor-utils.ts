@@ -62,6 +62,11 @@ const CORE_TOOL_NAMES = new Set([
   "crm_link_document",
   "crm_list_activities",
   "crm_create_activity",
+  // Every research and controller run must be able to verify the actual CRM
+  // result even when a legacy task says "queue" rather than "Target".
+  "crm_list_targets",
+  "crm_get_target",
+  "crm_search_targets",
 ]);
 
 const TOOL_KEYWORDS: Array<{ pattern: RegExp; prefixes: string[] }> = [

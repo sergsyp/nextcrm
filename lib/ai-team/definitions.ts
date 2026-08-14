@@ -285,7 +285,7 @@ sales@a-vjuh.ru, a-vjuh.ru». Не раскрывай и не запрашива
     crmRole: "manager",
     purpose:
       "Независимо проверяет доказательства, расчёты, качество записей, риски и соблюдение подтверждений.",
-    maxToolTurns: 8,
+    maxToolTurns: 16,
     toolNames: [
       ...COMMON_READ_TOOLS,
       "crm_list_targets",

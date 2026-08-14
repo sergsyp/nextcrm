@@ -22,13 +22,13 @@ const DEFAULT_DIRECTIONS: DirectionConfig[] = [
   {
     key: "metalworking",
     boardTitle: "Металлообработка — проверка гипотезы",
-    quota: 5,
+    quota: 15,
     taskBrief: "новые B2B-заказчики услуг металлообработки",
   },
   {
     key: "hvac",
     boardTitle: "Вентиляция, отопление и кондиционирование — автономные продажи",
-    quota: 5,
+    quota: 15,
     taskBrief: "новые B2B-заказчики промышленной вентиляции, отопления и кондиционирования",
   },
 ];
