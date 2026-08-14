@@ -1,4 +1,4 @@
-import { timingSafeEqual } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { readFileSync } from "node:fs";
 
 export const VZJUH_BOT_ACCOUNT = "vzjuh_bot";
@@ -14,6 +14,11 @@ function required(name: string): string {
           value: process.env.VZJUH_TELEGRAM_WEBHOOK_SECRET,
           file: process.env.VZJUH_TELEGRAM_WEBHOOK_SECRET_FILE,
         }
+      : name === "VZJUH_TELEGRAM_RELAY_SECRET"
+        ? {
+            value: process.env.VZJUH_TELEGRAM_RELAY_SECRET,
+            file: process.env.VZJUH_TELEGRAM_RELAY_SECRET_FILE,
+          }
       : name === "VZJUH_TELEGRAM_ADMIN_CHAT_ID"
         ? { value: process.env.VZJUH_TELEGRAM_ADMIN_CHAT_ID, file: undefined }
         : { value: undefined, file: undefined };
@@ -47,6 +52,26 @@ export function verifyVzjuhWebhookSecret(value: string | null): boolean {
 type TelegramMethod = "sendMessage" | "editMessageText" | "answerCallbackQuery";
 
 export async function callVzjuhTelegram<T>(method: TelegramMethod, body: Record<string, unknown>): Promise<T> {
+  const relayUrl = process.env.VZJUH_TELEGRAM_RELAY_URL?.trim().replace(/\/$/, "");
+  if (relayUrl) {
+    const payload = JSON.stringify({ method, body });
+    const timestamp = Math.floor(Date.now() / 1000).toString();
+    const signature = createHmac("sha256", required("VZJUH_TELEGRAM_RELAY_SECRET"))
+      .update(`${timestamp}.${payload}`)
+      .digest("hex");
+    const response = await fetch(`${relayUrl}/telegram`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-vzjuh-timestamp": timestamp,
+        "x-vzjuh-signature": signature,
+      },
+      body: payload,
+    });
+    const relayed = await response.json() as { ok?: boolean; result?: T; description?: string };
+    if (!response.ok || !relayed.ok) throw new Error(`TELEGRAM_RELAY_FAILED: ${relayed.description ?? response.status}`);
+    return relayed.result as T;
+  }
   const token = required("VZJUH_TELEGRAM_BOT_TOKEN");
   const response = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
     method: "POST",
