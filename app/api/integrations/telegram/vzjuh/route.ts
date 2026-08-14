@@ -25,6 +25,14 @@ type TelegramUpdate = {
   };
 };
 
+async function bestEffortTelegram(method: string, params: Record<string, unknown>) {
+  try {
+    await callVzjuhTelegram(method, params);
+  } catch (error) {
+    console.error("[vzjuh-telegram] callback acknowledgement failed", { method, error });
+  }
+}
+
 export async function POST(request: NextRequest) {
   if (!verifyVzjuhWebhookSecret(request.headers.get("x-telegram-bot-api-secret-token"))) {
     return NextResponse.json({ ok: false }, { status: 401 });
@@ -34,11 +42,11 @@ export async function POST(request: NextRequest) {
   if (callback?.data) {
     const parsed = parseApprovalCallback(callback.data);
     if (!parsed) {
-      await callVzjuhTelegram("answerCallbackQuery", { callback_query_id: callback.id, text: "Неизвестное действие" });
+      await bestEffortTelegram("answerCallbackQuery", { callback_query_id: callback.id, text: "Неизвестное действие" });
       return NextResponse.json({ ok: true });
     }
     if (BigInt(callback.from.id) !== vzjuhAdminChatId()) {
-      await callVzjuhTelegram("answerCallbackQuery", { callback_query_id: callback.id, text: "Недостаточно прав", show_alert: true });
+      await bestEffortTelegram("answerCallbackQuery", { callback_query_id: callback.id, text: "Недостаточно прав", show_alert: true });
       return NextResponse.json({ ok: true });
     }
     const result = await decideSergeyApproval({
@@ -47,9 +55,9 @@ export async function POST(request: NextRequest) {
       telegramUserId: BigInt(callback.from.id),
     });
     const label = result.approval.status === "APPROVED" ? "✅ Одобрено Сергеем" : "❌ Отклонено Сергеем";
-    await callVzjuhTelegram("answerCallbackQuery", { callback_query_id: callback.id, text: label });
+    await bestEffortTelegram("answerCallbackQuery", { callback_query_id: callback.id, text: label });
     if (callback.message) {
-      await callVzjuhTelegram("editMessageText", {
+      await bestEffortTelegram("editMessageText", {
         chat_id: callback.message.chat.id,
         message_id: callback.message.message_id,
         text: `${callback.message.text ?? result.approval.title}\n\n${label}`.slice(0, 4096),
