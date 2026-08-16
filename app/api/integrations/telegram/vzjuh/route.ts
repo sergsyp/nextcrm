@@ -75,9 +75,6 @@ export async function POST(request: NextRequest) {
   if (!message?.text || !message.from || message.chat.type !== "private") {
     return NextResponse.json({ ok: true });
   }
-  if (BigInt(message.from.id) === vzjuhAdminChatId()) {
-    return NextResponse.json({ ok: true });
-  }
   await saveIncomingVzjuhMessage({
     chatId: BigInt(message.chat.id),
     messageId: BigInt(message.message_id),
