@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> **Project archived on 2026-09-22.** The NextCRM deployment has been permanently decommissioned. Its Selectel server, SSD disk, backups and backup plans, images, file storage, public IP addresses, cloud router, private network, and the Selectel `NextCRM` project were removed. No active NextCRM infrastructure remains; this repository is retained for historical reference only.
+
 <a href="https://nextcrm.app/">
   <h1 align="center">NextCRM</h1>
 </a>
